@@ -3,13 +3,13 @@ clearvars;
 delete(gcp('nocreate'));
 %cols_array=10:98;
 %; %32:41;
+tic
 
 pixelcountresize=25e6;
 pixelcountresizewidth=10e3; % width in pixels
 
 transformtype='affine';
 transformtypev='affine';
-nsigmaoutlier=inf;
 mincontrastvalue=0.05; % default = 0.2
 minqualityvalue=0.1	; % default = 0.1
 maxdistancesep=0.1; % default = 1.5
@@ -20,14 +20,11 @@ outliertformerror_thresh=1;
 dooutlierremoval=1;
 dosavefigurematches=0;
 dosavefigurematchesv=0;
-dosavefigurematchesstrip=0;
-dowritestrips=0;
 dopause=0;
-dopointtransform=1;
 
 
 
-imgfolder='~/Documents/Acfer-TEMP/';
+imgfolder='~/Documents/Acfer-TEMP2/';
 samplename=fileparts(imgfolder);
 
 
@@ -54,10 +51,11 @@ colt=unique(sort(col_t));
 
 % DEBUG:
 %colt=[40:50]';
-colt_split_index=floor(numel(colt)/2);
-colt_split=colt(colt_split_index);
-cols_array=[colt(colt_split_index+1:end)',fliplr(colt(1:colt_split_index)')];
-
+ colt_split_index=floor(numel(colt)/2);
+ colt_split=colt(colt_split_index);
+ cols_array=[colt(colt_split_index+1:end)',fliplr(colt(1:colt_split_index)')];
+%colt_split=-inf;
+%cols_array=colt';
 
 ncols=numel(colt);
 
@@ -87,17 +85,6 @@ for qq=cols_array
 maxrows=max([maxrows,rowsforcol{colt==qq}(end)]);
 end
 
-if strcmp(transformtype,'affine') || strcmp(transformtype,'similarity')
-tformtprev_t(max(col_t),maxrows)=affine2d(eye(3));
-end
-
-if strcmp(transformtype,'projective')
-tformtprev_t(max(col_t),maxrows)=projective2d(eye(3));
-end
-
-Tt=nan(max(col_t),maxrows,3,3);
-
-isoutlierall=zeros(max(col_t),maxrows,3,3);
 
 brightnessratio=nan(max(col_t),maxrows);
 brightnessratiov=nan(max(col_t),maxrows);
@@ -118,19 +105,20 @@ matchedPoints=cell(colmax,rowmax);
 
 matchedvcount=zeros(colmax,rowmax);
 matchedcount=zeros(colmax,rowmax);
+maxc_index_t=zeros(colmax,1);
 maxvc_index_t=zeros(colmax,1);
-imgshiftx=zeros(colmax,rowmax);
-imgshifty=zeros(colmax,rowmax);
+imgshiftx=nan(colmax,rowmax);
+imgshifty=nan(colmax,rowmax);
 
 
-poolobj = parpool;
+%poolobj = parpool;
 
 for qq=cols_array
 %for qq=1:ncols
     tic
     
     col=sprintf('%03d',qq);
-    disp(col);
+ %   disp(col);
     nf=nrows(colt==qq);
     
  
@@ -166,18 +154,16 @@ It(1,:,:)=I1;
 
 inliercount=0;
 
-sprintf('Rows : %03d -- %03d',rows_array(1),rows_array(end))
+fprintf('Col %s Rows %03d – %03d\n',col,rows_array(1),rows_array(end))
 
 
-parfor kk=rows_array %2:nf
-%for kk=rows_array %2:nf
+%parfor kk=rows_array %2:nf
+for kk=rows_array %2:nf
 
 
 % imshow(I1); hold on; plot(points); hold off;
 
 imname2=sprintf(['%03d_%03d.' imgext],kk,qq);
-
-%imname_total(qq,kk)=imname2;
 
 if qq>colt_split
 imname2v=sprintf(['%03d_%03d.' imgext],kk,qq-1);
@@ -192,7 +178,7 @@ end
 I2=imread([imgfolder imname2]);
 imname1=[];
 
-if kk>rows_array(1)
+if isfile([imgfolder imname1]) && kk>rows_array(1)
 imname1=sprintf(['%03d_' col '.' imgext],kk-1);
 
 I1=imread([imgfolder imname1]);
@@ -223,7 +209,7 @@ if matchedcount(qq,kk)>3
     brightnessratio(kk,qq)=mean(double(I2(BW2)))./mean(double(I1(BW1)));
 end
 
-    if dosavefigurematches && matchedcount(qq,kk)>0
+    if dosavefigurematches && matchedcount(qq,kk)>3
        
     f=figure('Visible','off');
     showMatchedFeatures(I1,I2,inlierOriginal,inlierDistorted);
@@ -234,12 +220,6 @@ end
         
     end
     
-% [~, inlierDistorted, inlierOriginal, ~] = estimateGeometricTransform(...
-%     matchedPoints, matchedPointsPrev, transformtype, 'Confidence', 99.999, 'MaxNumTrials', 1e5, 'MaxDistance', round(width/100));
-
-% showMatchedFeatures(I1,I2,inlierOriginal,inlierDistorted);
-
-
 else
     
         matchedcount(qq,kk)=0;
@@ -257,7 +237,6 @@ pointsv_ = detectFASTFeatures(I1_,'ROI',searchROI_1,'MinQuality',minqualityvalue
 pointsv = detectFASTFeatures(I2,'ROI',searchROI_2,'MinQuality',minqualityvalue,'MinContrast',mincontrastvalue); %,'MinContrast',0.01); %,'MetricThreshold',100,'NumScaleLevels',6);    
 [featuresv, pointsv]  = extractFeatures(I2,  pointsv, 'Method','Block');
 
-
 %imshow(I1_); hold on; plot(pointsv_); hold off;
 %imshow(I1); hold on; plot(pointsv); hold off;
 
@@ -270,10 +249,6 @@ if numel(indexPairsv)>0
         matchedPointsPrev_v{qq,kk}=pointsv_(indexPairsv(:,2));
         
         matchedvcount(qq,kk)=matchedPointsPrev_v{qq,kk}.Count;
-        
-%         if qq==53 && kk==52
-%             disp('stop')
-%         end
                 
 else
 
@@ -294,9 +269,8 @@ if matchedvcount(qq,kk)>3
 end
     
 
-    if dosavefigurematchesv && matchedvcount(qq,kk)>0
+    if dosavefigurematchesv && matchedvcount(qq,kk)>3
        
-    [~, inlierDistortedv, inlierOriginalv, ~] = estimateGeometricTransform(matchedPoints_v{qq,kk}, matchedPointsPrev_v{qq,kk}, transformtype, 'Confidence', 99.99, 'MaxNumTrials', 1e5, 'MaxDistance', maxdistancesep); %, 'MaxDistance', round(height/100));
     %tft_(qq-cols_array(1))=tf_;
     f=figure('Visible','off');
     showMatchedFeatures(I1_,I2,inlierOriginalv,inlierDistortedv);
@@ -320,7 +294,7 @@ end
 
 end
 
-delete(poolobj);
+%delete(poolobj);
 
 
 
@@ -338,31 +312,33 @@ delete(poolobj);
 %          disp('here');
 %      end
 %%
-cols_array_middle=floor(mean(cols_array));
-rows_array_middle=floor(mean(rows_array));
 
 % nn=round(0.5*numel(rowsforcol{colt==cols_array(1)}));
 % startrow=rowsforcol{colt==cols_array(1)}(nn);
-% maxvc_index_t(cols_array(1))=startrow+1;
+% maxc_index_t(cols_array(1))=startrow+1;
 % startrow=rowsforcol{colt==cols_array(1)}(1);
-% maxvc_index_t(cols_array(1))=startrow+1;
+% maxc_index_t(cols_array(1))=startrow+1;
 % Tt(cols_array(1),startrow,:,:)=eye(3);
+isoutlierall=zeros(max(col_t),maxrows);
+nsigmaoutlier=10;
+
+close all
+
+if strcmp(transformtype,'affine') || strcmp(transformtype,'similarity')
+tformt(max(col_t),maxrows)=affine2d(eye(3));
+%tfti(max(col_t),maxrows)=affine2d(eye(3));
+end
+
+if strcmp(transformtype,'projective')
+tformt(max(col_t),maxrows)=projective2d(eye(3));
+%tfti(max(col_t),maxrows)=projective2d(eye(3));
+end
+
+Tt=nan(max(col_t),maxrows,3,3);
+
+
 
 for qq=cols_array
-        
-    if qq==cols_array(1)   
-            
-    [~,maxvc_index_t(qq)]=max(matchedcount(qq,:));
-    Tt(qq,maxvc_index_t(qq)-1,:,:)=eye(3);
-    mnoffset=2;
-    
-    else
-        
-    [~,maxvc_index_t(qq)]=max(matchedvcount(qq,:));
-    mnoffset=1;
-
-        
-    end
     
     if qq<=colt_split
         
@@ -374,32 +350,57 @@ for qq=cols_array
         
     end
     
+    [~,maxc_index_t(qq)]=max(matchedcount(qq,:));
+        
+    if qq==cols_array(1)   
+               
+    Tt(qq,maxc_index_t(qq)-1,:,:)=eye(3);
+    tformt(qq,maxc_index_t(qq)-1).T=eye(3);
+    loopvector=[maxc_index_t(qq):rowsforcol{colt==qq}(end),(maxc_index_t(qq)-2):-1:rowsforcol{colt==qq}(1)];
+    
+    else
+        
+        [~,maxvc_index_t(qq)]=max(matchedvcount(qq,:).*(~isoutlierall(qqp,:)));
+        loopvector=[maxvc_index_t(qq):rowsforcol{colt==qq}(end),(maxvc_index_t(qq)-1):-1:rowsforcol{colt==qq}(1)];
+    
+    end
+    
+
+    
     % sum(sum(isnan(squeeze(Tt(qq,kk-1,:,:)))))
     
     
-    loopvector=[maxvc_index_t(qq):rowsforcol{colt==qq}(end),(maxvc_index_t(qq)-mnoffset):-1:rowsforcol{colt==qq}(1)];
     
-    kkprev=loopvector(1)-1;
+    %loopvector=rowsforcol{colt==qq}'
     
-  for kk=loopvector %[maxvc_index_t(qq):rowsforcol{colt==qq}(end)] %rowsforcol{colt==qq}' %startrow+1:rows_array(end)
-    
-  if matchedcount(qq,kk)>=mincountpoints && ~isnan(sum(sum(Tt(qq,kkprev,:,:),3),4)) && (qq==cols_array(1) || (qq~=cols_array(1) && kk>maxvc_index_t(qq)) ) %&& errortform(qq,kk-1)<outliertformerror_thresh %&& (qq==cols_array(1) || (qq>cols_array(1) && kk>rows_array(startrowindex)+1)) % sum(sum(isnan(squeeze(Tt(qq,kk-1,:,:)))))==0 %&& (qq==cols_array(1) || (qq>cols_array(1) && kk>rows_array(startrowindex)+1))
-    ll=transformPointsForward(tformtprev_t(qq,kkprev),matchedPointsPrev{qq,kk}.Location);
+  for kk=loopvector  %[maxc_index_t(qq):rowsforcol{colt==qq}(end)] %rowsforcol{colt==qq}' %startrow+1:rows_array(end)
+  
+  ll=[];
+  mp_ll=[];    
+  
+if (kk+1)<=maxrows && ((qq==cols_array(1) && kk<maxc_index_t(qq)) ||  (qq~=cols_array(1) && kk<maxvc_index_t(qq))) && ~isnan(sum(sum(Tt(qq,kk+1,:,:),3),4))
+if (matchedcount(qq,kk+1)>=mincountpoints)
+    ll=transformPointsForward(tformt(qq,kk+1),matchedPoints{qq,kk+1}.Location);    
+    mp_ll=matchedPointsPrev{qq,kk+1}.Location;
+end
+end
+
+if kk>1 && ((matchedcount(qq,kk)>=mincountpoints) && ((qq==cols_array(1) && kk>=maxc_index_t(qq)) ||  (qq~=cols_array(1) && kk>=maxvc_index_t(qq))) && ~isnan(sum(sum(Tt(qq,kk-1,:,:),3),4)))
+    ll=transformPointsForward(tformt(qq,kk-1),matchedPointsPrev{qq,kk}.Location);    
     mp_ll=matchedPoints{qq,kk}.Location;
-  else
-     ll=[];
-     mp_ll=[];
-  end
-    
- if matchedvcount(qq,kk)>=mincountpoints && ~isoutlierall(qqp,kk)
-    llp=transformPointsForward(tformtprev_t(qqp,kk),matchedPointsPrev_v{qq,kk}.Location);
-    mp_llp=matchedPoints_v{qq,kk}.Location;
-    else
-        llp=[];
-        mp_llp=[];
- end
+end
+
+  
+ llp=[];
+ mp_llp=[];
  
-    
+ if matchedvcount(qq,kk)>=mincountpoints && ~isoutlierall(qqp,kk)
+    llp=transformPointsForward(tformt(qqp,kk),matchedPointsPrev_v{qq,kk}.Location);
+    mp_llp=matchedPoints_v{qq,kk}.Location;
+ end
+   
+ fprintf('(%d,%d): %d,%d / (%d,%d), Outlier: %d|%d\n',qq,kk,size(ll,1),size(llp,1),matchedcount(qq,kk),matchedvcount(qq,kk),isoutlierall(qq,kk),isoutlierall(qqp,kk))
+
  
  if (numel([mp_ll;mp_llp])+numel([ll;llp])) > 0
  
@@ -408,29 +409,31 @@ for qq=cols_array
                  end
                  
      
-[tformtprev_t(qq,kk), inlierDistorted, inlierOriginal, status] = estimateGeometricTransform(...
+[tformt(qq,kk), inlierDistorted, inlierOriginal, status] = estimateGeometricTransform(...
     [mp_ll;mp_llp], [ll;llp], transformtype, 'Confidence', 99.999, 'MaxNumTrials', 1e5, 'MaxDistance', maxdistancesep); %, 'MaxDistance', maxdistancesep);%;); %, 'MaxDistance', round(width/100));
+%[tfti(qq,kk), ~, ~, ~] = estimateGeometricTransform(...
+%     [ll;llp], [mp_ll;mp_llp], transformtype, 'Confidence', 99.999, 'MaxNumTrials', 1e5, 'MaxDistance', maxdistancesep); %, 'MaxDistance', maxdistancesep);%;); %, 'MaxDistance', round(width/100));
+
+
 
 if numel(inlierDistorted)>=mincountpoints
-U=transformPointsForward(tformtprev_t(qq,kk),inlierDistorted);
+U=transformPointsForward(tformt(qq,kk),inlierDistorted);
 errortform(qq,kk)=sum(sqrt((U(:,1)-inlierOriginal(:,1)).^2+(U(:,2)-inlierOriginal(:,2)).^2))./size(U,1);
 else
 errortform(qq,kk)=inf;
 brightnessratio(kk,qq)=nan;
 end
 
-Tt(qq,kk,:,:)=tformtprev_t(qq,kk).T;
+Tt(qq,kk,:,:)=tformt(qq,kk).T;
 
 % sprintf('%03d,%03d\n',kk,qq) 
-% num2str(tformtprev_t(qq,kk).T)
+% num2str(tformt(qq,kk).T)
 
      
  end
 
 % num2str(tformtprev.T)
     
-% Tt(kk,:,:)=Tt(kk-1,:,:);
-%
 
 kkprev=kk;
 
@@ -454,12 +457,21 @@ isnanindex = isnan(sum(sum(Tt(qq,vv,:,:),4),3));
 
 outliertformerror = errortform(qq,vv) > outliertformerror_thresh; %3e-3;
 
+vvo=vv((outlierindex11 | outlierindex12 | outlierindex21 | outlierindex22 | outlierindex31 | outlierindex32) & ~isnanindex);
+if numel(vvo)>0
+fprintf('Outliers: ');    
+for bb=1:numel(vvo)
+fprintf(['%03d_%03d.' imgext ' '],vvo(bb),qq)
+end
+fprintf('\n');
+end
+
 outlierindex= isnanindex | outlierindex11 | outlierindex12 | outlierindex21 | outlierindex22 | outlierindex31 | outlierindex32 | outliertformerror;
 
 isoutlierall(qq,vv(outlierindex))=ones(sum(outlierindex),1);
 Tt(qq,vv(outlierindex),:,:)=nan(1,sum(outlierindex),3,3);
 
-fprintf('Outliers/Total: %d/%d\n',sum(outlierindex),numel(outlierindex))
+fprintf('Col %d, Outliers/Total: %d/%d\n',qq, sum(outlierindex),numel(outlierindex))
 
 end
 
@@ -480,6 +492,7 @@ end
 
 end
 
+%figure
 plot(imgshiftx_,imgshifty_,'s'); title(['Column ' num2str(qq)])
 
 end
@@ -498,98 +511,17 @@ T2(:,:,3,3)=ones(size(T2,1),size(T2,2));
 for qq=cols_array
 for kk=rowsforcol{colt==qq}'
 
- tformtprev_t(qq,kk).T=squeeze(T2(qq,kk,:,:));
+ tformt(qq,kk).T=squeeze(T2(qq,kk,:,:));
  
 end
 end
 
-% BEGIN OLD OUTLIER REMOVAL
-% nanindex=isnan(Tt(qq,vv,3,1));
-% 
-% outlierfrac=sum(outlierindex)./numel(outlierindex);
-% 
-% nanfrac=sum(nanindex)./numel(outlierindex);
-% 
-% nonanoutlierfrac=sum(outlierindex & ~nanindex)./numel(outlierindex);
-% 
-% disp(['Outliers (All) (NaNs) = ' num2str(outlierfrac) ' , ' num2str(nanfrac)]);
-% 
-% if sum(~nanindex)>1 && sum(~outlierindex)>1
-%     
-% for kk=1:3
-%     for jj=1:2
-% %    pp=polyfit(vv(~outlierindex),squeeze(Tt(ii,vv(~outlierindex),3,1))',1);    polyval(pp,vv(outlierindex))
-%     Tt(qq,vv(outlierindex),kk,jj)=interp1(vv(~outlierindex),Tt(qq,vv(~outlierindex),kk,jj),vv(outlierindex),'linear','extrap');
-%     end
-% end
-% Tt(qq,vv,:,3)=repmat([0,0,1],numel(vv),1);
-% 
-% if dopointtransform    
-% for jj=1:numel(vv)
-%     tformtprev_t(qq,vv(jj)).T=squeeze(Tt(qq,vv(jj),:,:));
-% end 
-% else
-%     tformtprev_t(qq,vv(1)).T=eye(3);
-%     for jj=2:numel(vv)
-%     tformtprev_t(qq,vv(jj)).T=squeeze(Tt(qq,vv(jj),:,:))*tformtprev_t(qq,vv(jj-1)).T;
-%     end 
-% end
-% 
-% elseif sum(~nanindex)<=1
-% 
-%    % Tt(ii,1,:,:)=eye(3);
-%     for jj=find(nanindex)
-%         Tt(qq,vv(jj),:,:)=eye(3);
-%         Tt(qq,vv(jj),3,1)=-vv(jj)*imsz*(1-overlap);
-%     end
-% 
-% if dopointtransform    
-% for jj=1:numel(vv)
-%     tformtprev_t(qq,vv(jj)).T=squeeze(Tt(qq,vv(jj),:,:));
-% end 
-% else
-%     tformtprev_t(qq,vv(1)).T=eye(3);
-%     for jj=2:numel(vv)
-%     tformtprev_t(qq,vv(jj)).T=squeeze(Tt(qq,vv(jj),:,:))*tformtprev_t(qq,vv(jj-1)).T;
-%     end 
-% end
-%     
-% end
-%     
-% 
-% else
-%     
-%     disp('Outlier Removal Off');
-%     
-%     end
-% 
-%     end
-% END OLD OUTLIER REMOVAL       
-      
-        
-    
-% 
-% else
-%     
-% Tt(kk,:,:)=Tt(kk-1,:,:);
-% 
- 
-%     
-%     tformt(kk).T = squeeze(Tt(kk,:,:)) * tformt(kk-1).T;
-
-%num2str(squeeze(Tt(kk,:,:)))
-
-%tform(kk).T(3,3)
-%inlierDistorted.Count
-
-    [sz1,sz2]=size(tformtprev_t);
-visptext=[];
 
 xlim=zeros(max(col_t),maxrows,2);
 ylim=zeros(max(col_t),maxrows,2);
 for qq=cols_array
 for kk=rowsforcol{colt==qq}'
-    [xlim(qq,kk,:), ylim(qq,kk,:)] = outputLimits(tformtprev_t(qq,kk),  [1 width], [1 height]);
+    [xlim(qq,kk,:), ylim(qq,kk,:)] = outputLimits(tformt(qq,kk),  [1 width], [1 height]);
 end
 end
 
@@ -605,29 +537,21 @@ widthp  = round(xMax - xMin);
 heightp = round(yMax - yMin);
 
 
-
-
 fid=fopen(sprintf('imageinformation_%03d_%03d.txt',min(cols_array),max(cols_array)),'w+');
 
-%fprintf(fid,'%d,%d\n',widthp,heightp);
 fprintf(fid,'%d,%d,%d,%d\n',xMin,xMax,yMin,yMax);
 
 converttexts=[];
 for qq=cols_array
 for kk=rowsforcol{colt==qq}' %2:nf
 
-        %file1='stripw128.tif';
-% Row:
-% file1=[imagepath sprintf(['/%0' num2str(formatc0) 'd_%0' num2str(formatc0) 'd' ext],row,jj)];
-%fname=sprintf([imgfolder '%03d_%03d.' imgext],kk,qq);
 fname=[imgfolder sprintf(['%03d_%03d.' imgext],kk,qq)];
 
-[imgshiftx(qq,kk),imgshifty(qq,kk)]=transformPointsForward(tformtprev_t(qq,kk),0,0);
+[imgshiftx(qq,kk),imgshifty(qq,kk)]=transformPointsForward(tformt(qq,kk),0,0);
 
-converttexts=[converttexts sprintf(' \\( %s -alpha set -virtual-pixel transparent +distort AffineProjection ''%7.6f,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f'' \\)',fname,tformtprev_t(qq,kk).T(1,1),tformtprev_t(qq,kk).T(1,2),tformtprev_t(qq,kk).T(2,1),tformtprev_t(qq,kk).T(2,2),tformtprev_t(qq,kk).T(3,1),tformtprev_t(qq,kk).T(3,2))]; %,sxv,rxv,ryv,syv,txv,tyv)];
-%converttexts=[converttexts sprintf(' \\( %s -alpha set -virtual-pixel transparent +distort AffineProjection ''%7.6f,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f'' \\)',fname,tformtp(kk).T(1,1),tformtp(kk).T(1,2),tformtp(kk).T(2,1),tformtp(kk).T(2,2),tformtp(kk).T(3,1),tformtp(kk).T(3,2))]; %,sxv,rxv,ryv,syv,txv,tyv)];
-%T__=tformtprev_t(qq,kk).T;
-fprintf(fid,'%s,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f\n',fname,tformtprev_t(qq,kk).T(1,1),tformtprev_t(qq,kk).T(1,2),tformtprev_t(qq,kk).T(2,1),tformtprev_t(qq,kk).T(2,2),tformtprev_t(qq,kk).T(3,1),tformtprev_t(qq,kk).T(3,2));
+converttexts=[converttexts sprintf(' \\( %s -alpha set -virtual-pixel transparent +distort AffineProjection ''%7.6f,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f'' \\)',fname,tformt(qq,kk).T(1,1),tformt(qq,kk).T(1,2),tformt(qq,kk).T(2,1),tformt(qq,kk).T(2,2),tformt(qq,kk).T(3,1),tformt(qq,kk).T(3,2))]; %,sxv,rxv,ryv,syv,txv,tyv)];
+
+fprintf(fid,'%s,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f,%7.6f\n',fname,tformt(qq,kk).T(1,1),tformt(qq,kk).T(1,2),tformt(qq,kk).T(2,1),tformt(qq,kk).T(2,2),tformt(qq,kk).T(3,1),tformt(qq,kk).T(3,2));
 end
 end
 
@@ -635,21 +559,35 @@ fclose(fid);
 
 
 cc=distinguishable_colors(numel(cols_array));
+cc2=distinguishable_colors(maxrows);
 figure('visible','on');
+set(gcf,'Position',[0,0,2000,2000])
 hold on
-for ii=cols_array
-plot(imgshiftx(ii,rowsforcol{colt==ii}),imgshifty(ii,rowsforcol{colt==ii}),'-s','Color',cc(ii-min(cols_array)+1,:)); 
-plot(imgshiftx(ii,maxvc_index_t(ii)),imgshifty(ii,maxvc_index_t(ii)),'-*','Color',cc(ii-min(cols_array)+1,:));
+for jj=1:maxrows
+  plot(imgshiftx(:,jj),imgshifty(:,jj),'-','Color',cc2(jj,:)); 
 end
-ax=axis;
-%plot([startrow,startrow],[ax(3),ax(4)],'k-','LineWidth',2,'Color',[0.5,0.5,0.5]);
+for jj=cols_array
+  plot(imgshiftx(jj,:),imgshifty(jj,:),'-','Color',cc(jj-min(cols_array)+1,:)); 
+end
+for ii=cols_array
+indout=logical(isoutlierall(ii,rowsforcol{colt==ii}));
+plot(imgshiftx(ii,rowsforcol{colt==ii}(~indout)),imgshifty(ii,rowsforcol{colt==ii}(~indout)),'s','Color',cc(ii-min(cols_array)+1,:),'MarkerFaceColor',cc(ii-min(cols_array)+1,:)); 
+plot(imgshiftx(ii,rowsforcol{colt==ii}(indout)),imgshifty(ii,rowsforcol{colt==ii}(indout)),'s','Color',cc(ii-min(cols_array)+1,:),'MarkerFaceColor','w'); 
+if maxvc_index_t(ii)>0
+plot(imgshiftx(ii,maxvc_index_t(ii)),imgshifty(ii,maxvc_index_t(ii)),'O','Color',cc(ii-min(cols_array)+1,:),'MarkerFaceColor',cc(ii-min(cols_array)+1,:),'MarkerSize',7);
+end
+text(max(imgshiftx(ii,rowsforcol{colt==ii}))+width,mean(imgshifty(ii,rowsforcol{colt==ii})),sprintf('%03d',ii))
+end
+plot(imgshiftx(cols_array(1),maxc_index_t(cols_array(1))),imgshifty(cols_array(1),maxc_index_t(cols_array(1))),'p','Color','k','MarkerFaceColor','k','MarkerSize',11);
 hold off
 xlabel('Image X (pixels)')
 ylabel('Image Y (pixels)')
 box on
 mosaiclocationsfname=sprintf('mosaic_locations_%03d_%03d.png',min(cols_array),max(cols_array));
-
-print('-dpng','-r300',mosaiclocationsfname);
+axis equal
+set(gca,'TickLength',[0 0])
+print('-depsc',[mosaiclocationsfname(1:end-3) 'eps']);
+[~,~]=system(['epstopdf ' mosaiclocationsfname(1:end-3) 'eps ' mosaiclocationsfname(1:end-3) 'pdf']);
 
 figure('visible','on');
 hold on
@@ -666,6 +604,11 @@ tformfname=sprintf('tform_errors_%03d_%03d.png',min(cols_array),max(cols_array))
 
 print('-dpng','-r300',tformfname);
 
+imwrite(uint8(255*matchedcount./max(matchedcount(:))),sprintf('matchedcount_%03d_%03d.png',min(cols_array),max(cols_array)));
+imwrite(uint8(255*matchedvcount./max(matchedvcount(:))),sprintf('matchedvcount_%03d_%03d.png',min(cols_array),max(cols_array)));
+imwrite(uint8(255*(brightnessratio./max(brightnessratio(:))).^1),sprintf('brightnessratio_%03d_%03d.png',min(cols_array),max(cols_array)));
+imwrite(uint8(255*(brightnessratiov./max(brightnessratiov(:))).^1),sprintf('brightnessratiov_%03d_%03d.png',min(cols_array),max(cols_array)));
+
 
 %%
 if dopause
@@ -673,15 +616,19 @@ pause
 end
 
 %imcall=['echo ' converttexts converttext1 '| xargs ' converttext0]
-imcall=[converttext0 converttexts converttext1] % num2str(heightp)
-system(imcall);
+imcall=[converttext0 converttexts converttext1]; % num2str(heightp)
+
+save(sprintf('mosaic_maker_%03d-%03d.mat',min(cols_array),max(cols_array)))
+
+%system(imcall);
 imresizecall=sprintf('/usr/local/bin/vipsthumbnail strip%03d-%03d.png --size %d',min(cols_array),max(cols_array),pixelcountresizewidth);
-system(imresizecall);
+%system(imresizecall);
 
 fid = fopen('imcall.sh','wt');
 fprintf(fid, '%s\n\n%s','#!/bin/bash',imcall);
 fclose(fid);
 
+toc
 
 % system(['python ~/Documents/affinetransform.py' samplename]);
 
