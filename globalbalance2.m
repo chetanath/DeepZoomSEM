@@ -1,14 +1,14 @@
-function [XX_factor,OFFSET]=globalbalance2(brightnessvalues,brightnessvaluesv,cols_array,colt_split)
-% function [XX_factor,OFFSET]=globalbalance2(brightnessvalues,brightnessvaluesv,cols_array,colt_split)
+function OFFSET=globalbalance2(brightnessvalues,brightnessvaluesv,cols_array)
+% function [XX_factor,OFFSET]=globalbalance2(brightnessvalues,brightnessvaluesv,cols_array)
 
 threshdiff=1e-5;
 
+polyfittype='poly22';
 
 sz1=size(brightnessvalues,1);
 sz2=size(brightnessvalues,2);
 
 XX_offset=nan(sz1,sz2);
-OFFSET=nan(sz1,sz2);
 XX_factor=nan(sz1,sz2);
 
 stdimg_=inf;
@@ -26,11 +26,11 @@ while stdimg/stdimg_<(1-threshdiff) %diffsumsq./diffsumsqp<0.95
         
     for qq=cols_array
         
-        if qq<=colt_split
-            qqn=qq-1;
-        else
+        %if qq<=colt_split
+        %    qqn=qq-1;
+        %else
             qqn=qq+1;
-        end
+        %end
         
         firstpair=find(isfinite(brightnessvalues(qq,:,1)),1,'first');
         lastpair=find(isfinite(brightnessvalues(qq,:,1)),1,'last');
@@ -108,65 +108,87 @@ while stdimg/stdimg_<(1-threshdiff) %diffsumsq./diffsumsqp<0.95
 
     stdimg=nanstd(brightnessvalues(:));                              
     
-    fprintf('Iter=%d, New=%.6e, Old=%.6e, Ratio=%.3e\n',iternumber,stdimg,stdimg_,1-stdimg./stdimg_)
+    fprintf('Iter=%d, Mean Brightness=%.6e, New STD=%.6e, Old STD=%.6e, Ratio=%.3e\n',iternumber,nanmean(brightnessvalues(:)),stdimg,stdimg_,1-stdimg./stdimg_)
     
     
     % meanpixelvalue=[meanpixelvalue,mean([nanmean(nanmean(brightnessvalues(:,:,1))), nanmean(nanmean(brightnessvaluesv(:,:,1)))])];
        
 end
 
-% brightnessvalues=brightnessvalues.*meanbrightness0./nanmean(brightnessvalues(:));
+OFFSET=inpaint_nans(XX_offset,0);
+SLOPE=ones(size(OFFSET));
 
-[X,Y]=ndgrid(1:size(brightnessvalues,1),1:size(brightnessvalues,2));
-BV=0.5.*(brightnessvalues(:,:,1)+brightnessvaluesv(:,:,1));
-isf=isfinite(BV(:));
-sf=fit([X(isf),Y(isf)],BV(isf),'poly33');
+% SLOPE CALCULATION (NOT USED):
+% isf=isfinite(brightnessvalues(:,:,1)) & isfinite(brightnessvaluesv(:,:,1));
+% brightnessvalues(isf)=brightnessvalues(isf)+OFFSET(isf);
+% brightnessvaluesv(isf)=brightnessvaluesv(isf)+OFFSET(isf);
+% 
+% [X,Y]=ndgrid(1:size(brightnessvalues,1),1:size(brightnessvalues,2));
+% BV=0.5.*(brightnessvalues(:,:,1)+brightnessvaluesv(:,:,1));
+% sf=fit([X(isf),Y(isf)],BV(isf),polyfittype);
+% SLOPE=nan(size(OFFSET));
+% SLOPE(isf)=mean(BV(isf))./sf(X(isf),Y(isf));
+% SLOPE=inpaint_nans(SLOPE,0);
+%SLOPE=SLOPE/mean(SLOPE(:));
+%OFFSET=SLOPE.*OFFSET;
 
-if numel(cols_array)>1
-    
-    avgbrightness=nanmean(BV(:));
-    
-    for ii=1:size(brightnessvalues,1)
-        for jj=1:size(brightnessvalues,2)
-            shift=sf(X(ii),Y(ii));
-            if isfinite(shift)
-                OFFSET(ii,jj)=avgbrightness-shift;
-            end
-        end
-    end
-    
-end
 
-isfXX=isfinite(OFFSET);
 
-brightnessvalues(isfXX)=brightnessvalues(isfXX)+OFFSET(isfXX);
-brightnessvaluesv(isfXX)=brightnessvaluesv(isfXX)+OFFSET(isfXX);
 
-OFFSET=inpaint_nans(OFFSET+XX_offset,0);
 
-% brightnessvalues=brightnessvalues.*meanbrightness0./nanmean(brightnessvalues(:));
 
-[X,Y]=ndgrid(1:size(brightnessvalues,1),1:size(brightnessvalues,2));
-BV=0.5.*(brightnessvalues(:,:,1)+brightnessvaluesv(:,:,1));
-isf=isfinite(BV(:));
-sf=fit([X(isf),Y(isf)],BV(isf),'poly33');
+% if numel(cols_array)>1
+%     
+%     avgbrightness=nanmean(BV(:));
+%     
+%     for ii=1:size(brightnessvalues,1)
+%         for jj=1:size(brightnessvalues,2)
+%             shift=sf(X(ii),Y(ii));
+%             if isfinite(shift)
+%                 OFFSET(ii,jj)=avgbrightness-shift;
+%             end
+%         end
+%     end
+%     
+% end
 
-if numel(cols_array)>1
-    
-    avgbrightness=nanmean(BV(:));
-    
-    for ii=1:size(brightnessvalues,1)
-        for jj=1:size(brightnessvalues,2)
-            shift=sf(X(ii),Y(ii));
-            if isfinite(shift) && shift~=0
-                XX_factor(ii,jj)=avgbrightness./shift;
-            end
-        end
-    end
-    
-end
+% OFFSET__=nanmean(BV(:))-sf(X,Y);
+% OFFSET(isf)=OFFSET__(isf);
 
-XX_factor-inpaint_nans(XX_factor,0);
+
+% isfXX=isfinite(OFFSET);
+
+% brightnessvalues(isf)=brightnessvalues(isf)+OFFSET(isf);
+% brightnessvaluesv(isf)=brightnessvaluesv(isf)+OFFSET(isf);
+% 
+% OFFSET=inpaint_nans(OFFSET+XX_offset,0);
+% 
+% % brightnessvalues=brightnessvalues.*meanbrightness0./nanmean(brightnessvalues(:));
+% 
+% %[X,Y]=ndgrid(1:size(brightnessvalues,1),1:size(brightnessvalues,2));
+% BV=0.5.*(brightnessvalues(:,:,1)+brightnessvaluesv(:,:,1));
+% isf=isfinite(BV(:));
+% sf=fit([X(isf),Y(isf)],BV(isf),polyfittype);
+% 
+% XX_factor=nanmean(BV(:))./sf(X,Y);
+%XX_factor(isf)=XX_factor__(isf);
+
+% if numel(cols_array)>1
+%     
+%     avgbrightness=nanmean(BV(:));
+%     
+%     for ii=1:size(brightnessvalues,1)
+%         for jj=1:size(brightnessvalues,2)
+%             shift=sf(X(ii),Y(ii));
+%             if isfinite(shift) && shift~=0
+%                 XX_factor(ii,jj)=avgbrightness./shift;
+%             end
+%         end
+%     end
+%     
+% end
+
+%XX_factor-inpaint_nans(XX_factor,0);
 
 %%
 
