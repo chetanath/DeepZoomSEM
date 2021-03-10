@@ -1,0 +1,755 @@
+<script src="../openseadragon-bin-2.4.2/openseadragon.min.js"></script>
+<script src="../openseadragon-bin-2.4.2/openseadragon-scalebar.js"></script>
+<script src="../openseadragon-bin-2.4.2/openseadragon-bookmark-url.js"></script>
+<script src="../openseadragon-bin-2.4.2/canvas-toBlob.js"></script>
+<script src="../openseadragon-bin-2.4.2/FileSaver.min.js"></script>
+<script src="../openseadragon-bin-2.4.2/openseadragonScreenshot.js"></script>
+<script src="../openseadragon-bin-2.4.2/OpenSeadragonHTMLelements.js"></script>
+<!--<script src="../openseadragon-bin-2.4.2/openseadragon-filtering.js"></script>-->
+
+<html>
+<body style="background-color:gray;">
+</body>
+</html>
+
+<div class="demoarea">
+<div id="contentDiv" class="../openseadragon" style="width:1024px; height:768px;"></div>
+</div>
+
+
+<script type="text/javascript">// <![CDATA[
+
+
+    var originalnmperpixelbse=48.828;
+    var originalnmperpixeleds=originalnmperpixelbse*231319/5817;
+    var SampleName="DOM143055"
+    
+    var ncolors=0;
+    
+    // get image width ratios from .dzi files:
+    
+
+    //var mapnamelist = ["BSE", "Fe-S-O", "Fe-Ca-Mg", "S-Si-O", "Ca-Al-Si", "C", "N", "O", "F", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Ni",  "Zn"];
+    
+    //<span style='color: red;'>"+mapnamelist[elementindex]+"</span>
+    var mapnamelist = ["BSE", "<span style='color: red;'>Fe</span>-<span style='color: green;'>S</span>-<span style='color: blue;'>O</span>", "<span style='color: red;'>Fe</span>-<span style='color: green;'>Ca</span>-<span style='color: blue;'>Mg</span>", "<span style='color: red;'>S</span>-<span style='color: green;'>Si</span>-<span style='color: blue;'>O</span>", "<span style='color: red;'>Ca</span>-<span style='color: green;'>Al</span>-<span style='color: blue;'>Si</span>", "C", "N", "O", "F", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Ni",  "Zn"];
+
+    
+    var originalnmperpixelall = [];
+    originalnmperpixelall = originalnmperpixelall.concat(originalnmperpixelbse)
+
+    for (var i = 0; i <= mapnamelist.length; i++) {
+        originalnmperpixelall = originalnmperpixelall.concat(originalnmperpixeleds);
+    };
+
+    var originalnmperpixel= originalnmperpixelbse;
+    var rgbbuttonclicked=false
+    
+    var previousred=""
+    var previousgreen=""
+    var previousblue=""
+    var oldtext=""
+    var rgblabel=""
+
+    function onoff(){
+      rgbbuttonclicked=true
+      currentvalue = RGB_button.value;
+      if(currentvalue == "Off"){
+        RGB_button.value="On";
+        RGB_button.disable();
+        document.getElementById("rgbtext").innerHTML = "Select Red"
+        document.getElementById("rgbtext").style.color = "red"
+        //viewer.buttons.buttons.push(RGB_button);
+        //viewer.buttons.element.appendChild(RGB_button.element);
+        //console.log('ON')
+      }else{
+        RGB_button.value="Off";
+        //RGB_button.enable();
+        //RGB_button.srcRest='../deepzoomimages/buttons/RGB_button_gray.png';
+        //console.log('OFF')
+      }
+    }
+
+function LoadPreviousRGB(){
+
+    if (rgbbuttonclicked) {
+     console.log("PREVIOUS BUTTON CLICKED")
+
+    viewer.open({
+    tileSource: previousred
+    });
+    viewer.addTiledImage({
+    tileSource: previousgreen,
+    compositeOperation: "lighter"
+    });
+    viewer.addTiledImage({
+    tileSource: previousblue,
+    compositeOperation: "lighter"
+    });
+    
+    document.getElementById("currentpage").innerHTML = rgblabel
+    
+    }
+    
+    
+}
+
+
+
+function elementButtonClicked(elementindex) {
+   console.log("elementButtonClicked")
+//   if  (RGB_button.value=="On") {
+     if (ncolors==0) {
+         console.log("GREEN CHOSEN")
+         document.getElementById("rgbtext").innerHTML = "Select Green"
+         document.getElementById("rgbtext").style.color = "green"
+         //document.getElementById("Gtext").innerHTML = ""
+         //document.getElementById("Btext").innerHTML = ""
+         document.getElementById("currentpage").innerHTML = "<span style='color: red;'>"+mapnamelist[elementindex]+"</span>"
+         document.getElementById("Rtext").innerHTML = "<span style='color: red;'>"+mapnamelist[elementindex]+"</span>"
+         //document.getElementById("Rtext").innerHTML = mapnamelist[elementindex]
+         previousred="../deepzoomimages/"+SampleName+"X/"+SampleName+"_" + mapnamelist[elementindex] + "_red.dzi"
+         viewer.open({
+         tileSource: previousred
+         });
+     } else if (ncolors==1) {
+         document.getElementById("rgbtext").innerHTML = "Select Blue"
+         document.getElementById("rgbtext").style.color = "blue"
+         oldtextR=document.getElementById("Rtext").innerHTML
+         document.getElementById("Rtext").innerHTML=oldtextR.concat("<span style='color: green;'>"+mapnamelist[elementindex]+"</span>")
+         //document.getElementById("Gtext").innerHTML = mapnamelist[elementindex]
+         oldtext=document.getElementById("currentpage").innerHTML
+         document.getElementById("currentpage").innerHTML = oldtext.concat("-<span style='color: green;'>"+mapnamelist[elementindex]+"</span>")
+         previousgreen="../deepzoomimages/"+SampleName+"X/"+SampleName+"_" + mapnamelist[elementindex] + "_green.dzi"
+         viewer.addTiledImage({
+         tileSource: previousgreen,
+         compositeOperation: "lighter"
+         });
+     } else if (ncolors==2) {
+         document.getElementById("rgbtext").innerHTML = ""
+         oldtextR=document.getElementById("Rtext").innerHTML
+         document.getElementById("Rtext").innerHTML=oldtextR.concat("<span style='color: blue;'>"+mapnamelist[elementindex]+"</span>")
+         //document.getElementById("Btext").innerHTML = mapnamelist[elementindex]
+         oldtext=document.getElementById("currentpage").innerHTML
+         document.getElementById("currentpage").innerHTML = oldtext.concat("-<span style='color: blue;'>"+mapnamelist[elementindex]+"</span>")
+         rgblabel=document.getElementById("currentpage").innerHTML
+         previousblue="../deepzoomimages/"+SampleName+"X/"+SampleName+"_" + mapnamelist[elementindex] + "_blue.dzi"
+         RGB_button.enable();
+         onoff();
+         viewer.addTiledImage({
+         tileSource: previousblue,
+         compositeOperation: "lighter"
+         });
+     }
+                              
+     ncolors=(ncolors+1) % 3;
+     
+ //    } else {
+ //        viewer.goToPage(elementindex);
+ //        }
+    
+}
+
+
+
+let BSE_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/bsebutton.png',
+    srcGroup: '../deepzoomimages/buttons/bsebutton.png',
+    srcHover: '../deepzoomimages/buttons/bsebutton.png',
+    srcDown: 'https://raw.githubusercontent.com/openseadragon/openseadragon/master/images/button_pressed.png',
+    onClick: function() {
+        viewer.goToPage(0);
+    }
+});
+
+let BSE_button2 = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/bsebutton.png',
+    srcGroup: '../deepzoomimages/buttons/bsebutton.png',
+    srcHover: '../deepzoomimages/buttons/bsebutton.png',
+    srcDown: 'https://raw.githubusercontent.com/openseadragon/openseadragon/master/images/button_pressed.png',
+    onClick: function() {
+        viewer.goToPage(0);
+    }
+});
+
+let FeSO_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/FeSO_button.png',
+    srcGroup: '../deepzoomimages/buttons/FeSO_button.png',
+    srcHover: '../deepzoomimages/buttons/FeSO_button.png',
+    srcDown: '../deepzoomimages/buttons/FeSO_button.png',
+    onClick: function() {
+        viewer.goToPage(1);
+    }
+});
+
+let FeCaMg_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/FeCaMg_button.png',
+    srcGroup: '../deepzoomimages/buttons/FeCaMg_button.png',
+    srcHover: '../deepzoomimages/buttons/FeCaMg_button.png',
+    srcDown: '../deepzoomimages/buttons/FeCaMg_button.png',
+    onClick: function() {
+        viewer.goToPage(2);
+    }
+});
+
+let SSiO_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/SSiO_button.png',
+    srcGroup: '../deepzoomimages/buttons/SSiO_button.png',
+    srcHover: '../deepzoomimages/buttons/SSiO_button.png',
+    srcDown: '../deepzoomimages/buttons/SSiO_button.png',
+    onClick: function() {
+        viewer.goToPage(3);
+    }
+});
+
+let CaAlSi_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/CaAlSi_button.png',
+    srcGroup: '../deepzoomimages/buttons/CaAlSi_button.png',
+    srcHover: '../deepzoomimages/buttons/CaAlSi_button.png',
+    srcDown: '../deepzoomimages/buttons/CaAlSi_button.png',
+    onClick: function() {
+        viewer.goToPage(4);
+    }
+});
+
+let RGB_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/RGB_button.png',
+    srcGroup: '../deepzoomimages/buttons/RGB_button.png',
+    srcHover: '../deepzoomimages/buttons/RGB_button.png',
+    srcDown: '../deepzoomimages/buttons/RGB_button.png',
+    id: "RGBbutton",
+    value: "Off",
+    onClick: function() {
+        onoff();
+    }
+});
+
+let PrevousRGB_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/empty_button.png',
+    srcGroup: '../deepzoomimages/buttons/empty_button.png',
+    srcHover: '../deepzoomimages/buttons/empty_button.png',
+    srcDown: '../deepzoomimages/buttons/empty_button.png',
+    id: "PreviousRGBbutton",
+    onClick: function() {
+
+        LoadPreviousRGB();
+        
+    }
+});
+
+
+
+let C_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/C_button.png',
+    srcGroup: '../deepzoomimages/buttons/C_button.png',
+    srcHover: '../deepzoomimages/buttons/C_button.png',
+    srcDown: '../deepzoomimages/buttons/C_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(5);
+        } else {
+          viewer.goToPage(5);
+        }
+        }
+    });
+
+
+let N_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/N_button.png',
+    srcGroup: '../deepzoomimages/buttons/N_button.png',
+    srcHover: '../deepzoomimages/buttons/N_button.png',
+    srcDown: '../deepzoomimages/buttons/N_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(6);
+        } else {
+          viewer.goToPage(6);
+        }
+        }
+    });
+
+let O_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/O_button.png',
+    srcGroup: '../deepzoomimages/buttons/O_button.png',
+    srcHover: '../deepzoomimages/buttons/O_button.png',
+    srcDown: '../deepzoomimages/buttons/O_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(7);
+        } else {
+          viewer.goToPage(7);
+        }
+        }
+    });
+
+let F_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/F_button.png',
+    srcGroup: '../deepzoomimages/buttons/F_button.png',
+    srcHover: '../deepzoomimages/buttons/F_button.png',
+    srcDown: '../deepzoomimages/buttons/F_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(8);
+        } else {
+          viewer.goToPage(8);
+        }
+        }
+    });
+
+let Na_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Na_button.png',
+    srcGroup: '../deepzoomimages/buttons/Na_button.png',
+    srcHover: '../deepzoomimages/buttons/Na_button.png',
+    srcDown: '../deepzoomimages/buttons/Na_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(9);
+        } else {
+          viewer.goToPage(9);
+        }
+        }
+    });
+
+
+let Mg_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Mg_button.png',
+    srcGroup: '../deepzoomimages/buttons/Mg_button.png',
+    srcHover: '../deepzoomimages/buttons/Mg_button.png',
+    srcDown: '../deepzoomimages/buttons/Mg_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(10);
+        } else {
+          viewer.goToPage(10);
+        }
+        }
+    });
+
+
+let Al_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Al_button.png',
+    srcGroup: '../deepzoomimages/buttons/Al_button.png',
+    srcHover: '../deepzoomimages/buttons/Al_button.png',
+    srcDown: '../deepzoomimages/buttons/Al_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(11);
+        } else {
+          viewer.goToPage(11);
+        }
+        }
+    });
+
+let Si_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Si_button.png',
+    srcGroup: '../deepzoomimages/buttons/Si_button.png',
+    srcHover: '../deepzoomimages/buttons/Si_button.png',
+    srcDown: '../deepzoomimages/buttons/Si_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(12);
+        } else {
+          viewer.goToPage(12);
+        }
+        }
+    });
+
+let P_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/P_button.png',
+    srcGroup: '../deepzoomimages/buttons/P_button.png',
+    srcHover: '../deepzoomimages/buttons/P_button.png',
+    srcDown: '../deepzoomimages/buttons/P_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(13);
+        } else {
+          viewer.goToPage(13);
+        }
+        }
+    });
+
+let S_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/S_button.png',
+    srcGroup: '../deepzoomimages/buttons/S_button.png',
+    srcHover: '../deepzoomimages/buttons/S_button.png',
+    srcDown: '../deepzoomimages/buttons/S_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(14);
+        } else {
+          viewer.goToPage(14);
+        }
+        }
+    });
+
+
+let Cl_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Cl_button.png',
+    srcGroup: '../deepzoomimages/buttons/Cl_button.png',
+    srcHover: '../deepzoomimages/buttons/Cl_button.png',
+    srcDown: '../deepzoomimages/buttons/Cl_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(15);
+        } else {
+          viewer.goToPage(15);
+        }
+        }
+    });
+
+let K_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/K_button.png',
+    srcGroup: '../deepzoomimages/buttons/K_button.png',
+    srcHover: '../deepzoomimages/buttons/K_button.png',
+    srcDown: '../deepzoomimages/buttons/K_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(16);
+        } else {
+          viewer.goToPage(16);
+        }
+        }
+    });
+let Ca_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Ca_button.png',
+    srcGroup: '../deepzoomimages/buttons/Ca_button.png',
+    srcHover: '../deepzoomimages/buttons/Ca_button.png',
+    srcDown: '../deepzoomimages/buttons/Ca_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(17);
+        } else {
+          viewer.goToPage(17);
+        }
+        }
+    });
+
+let Sc_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Sc_button.png',
+    srcGroup: '../deepzoomimages/buttons/Sc_button.png',
+    srcHover: '../deepzoomimages/buttons/Sc_button.png',
+    srcDown: '../deepzoomimages/buttons/Sc_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(18);
+        } else {
+          viewer.goToPage(18);
+        }
+        }
+    });
+
+let Ti_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Ti_button.png',
+    srcGroup: '../deepzoomimages/buttons/Ti_button.png',
+    srcHover: '../deepzoomimages/buttons/Ti_button.png',
+    srcDown: '../deepzoomimages/buttons/Ti_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(19);
+        } else {
+          viewer.goToPage(19);
+        }
+        }
+    });
+
+
+let V_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/V_button.png',
+    srcGroup: '../deepzoomimages/buttons/V_button.png',
+    srcHover: '../deepzoomimages/buttons/V_button.png',
+    srcDown: '../deepzoomimages/buttons/V_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(20);
+        } else {
+          viewer.goToPage(20);
+        }
+        }
+    });
+
+let Cr_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Cr_button.png',
+    srcGroup: '../deepzoomimages/buttons/Cr_button.png',
+    srcHover: '../deepzoomimages/buttons/Cr_button.png',
+    srcDown: '../deepzoomimages/buttons/Cr_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(21);
+        } else {
+          viewer.goToPage(21);
+        }
+        }
+    });
+
+let Mn_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Mn_button.png',
+    srcGroup: '../deepzoomimages/buttons/Mn_button.png',
+    srcHover: '../deepzoomimages/buttons/Mn_button.png',
+    srcDown: '../deepzoomimages/buttons/Mn_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(22);
+        } else {
+          viewer.goToPage(22);
+        }
+        }
+    });
+let Fe_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Fe_button.png',
+    srcGroup: '../deepzoomimages/buttons/Fe_button.png',
+    srcHover: '../deepzoomimages/buttons/Fe_button.png',
+    srcDown: '../deepzoomimages/buttons/Fe_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(23);
+        } else {
+          viewer.goToPage(23);
+        }
+        }
+    });
+
+let Ni_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Ni_button.png',
+    srcGroup: '../deepzoomimages/buttons/Ni_button.png',
+    srcHover: '../deepzoomimages/buttons/Ni_button.png',
+    srcDown: '../deepzoomimages/buttons/Ni_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(24);
+        } else {
+          viewer.goToPage(24);
+        }
+        }
+    });
+
+let Zn_button = new OpenSeadragon.Button({
+    srcRest: '../deepzoomimages/buttons/Zn_button.png',
+    srcGroup: '../deepzoomimages/buttons/Zn_button.png',
+    srcHover: '../deepzoomimages/buttons/Zn_button.png',
+    srcDown: '../deepzoomimages/buttons/Zn_button.png',
+    onClick:  function() {
+        if  (RGB_button.value=="On") {
+        elementButtonClicked(25);
+        } else {
+          viewer.goToPage(25);
+        }
+        }
+    });
+
+
+
+    var viewer = OpenSeadragon({
+        id:             "contentDiv",
+        prefixUrl: "../openseadragon-bin-2.4.2/images/",
+        tileSources: ["../deepzoomimages/"+SampleName+".dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Fe_S_O.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Fe_Ca_Mg.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_S_Si_O.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Ca_Al_Si.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_C.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_N.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_O.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_F.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Na.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Mg.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Al.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Si.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_P.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_S.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Cl.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_K.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Ca.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Sc.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Ti.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_V.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Cr.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Mn.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Fe.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Ni.dzi",
+                      "../deepzoomimages/"+SampleName+"X/"+SampleName+"_Zn.dzi",
+                      ],
+       // toolbar:       "toolbarDiv",
+        preserveViewport: true,
+        maxZoomPixelRatio: 100,
+        zoomPerClick: 1.5,
+        showNavigator:  true,
+        showFlipControl: true,
+        showRotationControl: true,
+        imageSmoothingEnabled: true,
+        sequenceMode: true,
+        initialPage: 0
+       });
+
+
+
+this.divElt = document.createElement("div");
+this.viewer.container.appendChild(this.divElt);
+this.divElt.innerHTML="BSE"
+this.divElt.style.position = "absolute"
+this.divElt.style.bottom = 30
+this.divElt.style.left = 10
+this.divElt.style.color = "white"
+this.divElt.style.opacity=0.5
+this.divElt.id="currentpage"
+
+
+this.divElt = document.createElement("div");
+this.viewer.container.appendChild(this.divElt);
+this.divElt.innerHTML=""
+this.divElt.style.position = "absolute"
+this.divElt.align = "left"
+this.divElt.style.bottom = 9
+this.divElt.style.left = 170
+this.divElt.style.color = "red"
+this.divElt.style.opacity=0.5
+this.divElt.style.fontWeight="900"
+this.divElt.id="rgbtext"
+
+this.divElt = document.createElement("div");
+this.viewer.container.appendChild(this.divElt);
+this.divElt.innerHTML=""
+this.divElt.style.cursor="default"
+this.divElt.style.position = "absolute"
+this.divElt.style.pointerEvents = "none"
+this.divElt.style.top = 9
+this.divElt.style.left = 739
+this.divElt.align = "left"
+this.divElt.style.opacity=1
+this.divElt.style.fontWeight="900"
+this.divElt.id="Rtext"
+
+
+
+
+//console.log(viewer.world.getItemAt(0).getContentSize());
+
+
+viewer.addControl(BSE_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(FeSO_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(FeCaMg_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(SSiO_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(CaAlSi_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(RGB_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(PrevousRGB_button.element, { anchor: OpenSeadragon.ControlAnchor.TOP_LEFT });
+
+viewer.addControl(Zn_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Ni_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Fe_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Mn_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Cr_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(V_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Ti_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Sc_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Ca_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(K_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Cl_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(S_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(P_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Si_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Al_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Mg_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(Na_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(F_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(O_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(N_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(C_button.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+viewer.addControl(BSE_button2.element, { anchor: OpenSeadragon.ControlAnchor.BOTTOM_RIGHT });
+
+
+viewer.addHandler("page", function (data) {
+      // data.viewer.world.getItemAt(0).source.dimensions.x)
+      viewer.scalebar({
+                type: OpenSeadragon.ScalebarType.MICROSCOPY,
+                pixelsPerMeter: 1e9/(originalnmperpixelall[data.page]),
+                minWidth: "100px",
+                location: OpenSeadragon.ScalebarLocation.BOTTOM_LEFT,
+                xOffset: 5,
+                yOffset: 10,
+                stayInsideImage: false,
+                color: "rgb(150, 150, 150)",
+                fontColor: "rgb(50, 50, 50)",
+                backgroundColor: "rgba(255, 255, 255, 0.75)",
+                fontSize: "small",
+                barThickness: 2
+            });
+       document.getElementById("currentpage").innerHTML = mapnamelist[data.page]
+
+  });
+
+
+viewer.addHandler("container-exit", function () {
+    document.getElementById("Rtext").style.opacity = 0
+    });
+
+viewer.addHandler("container-enter", function () {
+    document.getElementById("Rtext").style.opacity = 1
+    });
+
+viewer.addHandler("add-item", function (data) {
+      // data.viewer.world.getItemAt(0).source.dimensions.x)
+
+       document.getElementById("currentpage").innerHTML = mapnamelist[data.page]
+
+  });
+
+    
+
+          viewer.scalebar({
+                    type: OpenSeadragon.ScalebarType.MICROSCOPY,
+                    pixelsPerMeter: 1e9/originalnmperpixelbse,
+                    minWidth: "100px",
+                    location: OpenSeadragon.ScalebarLocation.BOTTOM_LEFT,
+                    xOffset: 5,
+                    yOffset: 10,
+                    stayInsideImage: false,
+                    color: "rgb(150, 150, 150)",
+                    fontColor: "rgb(50, 50, 50)",
+                    backgroundColor: "rgba(255, 255, 255, 0.75)",
+                    fontSize: "small",
+                    barThickness: 2
+                });
+          viewer.bookmarkUrl();
+          viewer.screenshot({
+        showOptions: true, // Default is false
+        keyboardShortcut: 'p', // Default is null
+        showScreenshotControl: true // Default is true
+        });
+
+function bseimage(imageindex){
+console.log("bsebutton");
+viewer.goToPage(imageindex)
+};
+
+
+
+
+// ]]></script>
+
+
