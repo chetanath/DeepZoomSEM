@@ -70,6 +70,26 @@
       }
     }
 
+
+function edsscalebar(){
+    
+    viewer.scalebar({
+              type: OpenSeadragon.ScalebarType.MICROSCOPY,
+              pixelsPerMeter: 1e9/(originalnmperpixeleds),
+              minWidth: "100px",
+              location: OpenSeadragon.ScalebarLocation.BOTTOM_LEFT,
+              xOffset: 5,
+              yOffset: 10,
+              stayInsideImage: false,
+              color: "rgb(150, 150, 150)",
+              fontColor: "rgb(50, 50, 50)",
+              backgroundColor: "rgba(255, 255, 255, 0.75)",
+              fontSize: "small",
+              barThickness: 2
+          });
+    
+}
+
 function LoadPreviousRGB(){
 
     if (rgbbuttonclicked) {
@@ -88,7 +108,7 @@ function LoadPreviousRGB(){
     });
     
     document.getElementById("currentpage").innerHTML = rgblabel
-    
+    edsscalebar()
     }
     
     
@@ -112,6 +132,7 @@ function elementButtonClicked(elementindex) {
          viewer.open({
          tileSource: previousred
          });
+         edsscalebar()
      } else if (ncolors==1) {
          document.getElementById("rgbtext").innerHTML = "Select Blue"
          document.getElementById("rgbtext").style.color = "blue"
@@ -125,6 +146,7 @@ function elementButtonClicked(elementindex) {
          tileSource: previousgreen,
          compositeOperation: "lighter"
          });
+         edsscalebar()
      } else if (ncolors==2) {
          document.getElementById("rgbtext").innerHTML = ""
          oldtextR=document.getElementById("Rtext").innerHTML
@@ -138,8 +160,9 @@ function elementButtonClicked(elementindex) {
          onoff();
          viewer.addTiledImage({
          tileSource: previousblue,
-         compositeOperation: "lighter"
+         compositeOperation: "lighter",
          });
+         edsscalebar()
      }
                               
      ncolors=(ncolors+1) % 3;
