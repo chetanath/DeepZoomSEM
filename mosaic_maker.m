@@ -696,8 +696,8 @@ for ii=-round(numel(cols_array)/20):round(numel(cols_array)/20)
     
 end
 
-pctile_thresh_tform=80;
-pctile_thresh_shift=80;
+pctile_thresh_tform=90;
+pctile_thresh_shift=90;
 tform_power=0;
 shift_power=1;
 
@@ -964,7 +964,8 @@ if dorefine
             
             for kk_=rows_array
                 %if (kk_-1)>=rowmin && (qq_-1)>=colmin && (kk_+1)<=rowmax && (qq_+1)<=colmax
-                if isfinite(Tt2(qq_,kk_,1,1)) %&& isfinite(Tt2(qq_-1,kk_,1,1)) && isfinite(Tt2(qq_,kk_-1,1,1))  && isfinite(Tt2(qq_+1,kk_,1,1)) && isfinite(Tt2(qq_,kk_+1,1,1))
+%                if isfinite(Tt2(qq_,kk_,1,1)) %&& isfinite(Tt2(qq_-1,kk_,1,1)) && isfinite(Tt2(qq_,kk_-1,1,1))  && isfinite(Tt2(qq_+1,kk_,1,1)) && isfinite(Tt2(qq_,kk_+1,1,1))
+                 if ~isnanET(qq_,kk_) %&& isfinite(Tt2(qq_-1,kk_,1,1)) && isfinite(Tt2(qq_,kk_-1,1,1))  && isfinite(Tt2(qq_+1,kk_,1,1)) && isfinite(Tt2(qq_,kk_+1,1,1))
                     
                     etfp = errortformfun(qq_,kk_,Tt2,matchedPointsPrev_v,matchedPoints_v,matchedPointsPrev,matchedPoints,colmin,colmax,rowmin,rowmax);
                     
