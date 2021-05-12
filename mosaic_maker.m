@@ -12,7 +12,7 @@ clearvars;
 
 %imgfolder='~/Data/Tescan/Ryan/Acfer182/HighRes/';
 %imgfolder='~/Data/Tescan/Ryan/DOM143055/HighRes/';
-imgfolder='~/Data/Tescan/Ryan/Acfer182/HighRes/';
+imgfolder='~/Data/Tescan/Ryan/Angra_dos_Reis/HighRes/';
 
 pixelcountresize=25e6;
 pixelcountresizewidth=10e3; % width in pixels
@@ -20,19 +20,19 @@ N_Histogram_Bins=64;
 offset_tolerance=inf; %0.1;
 tform_tolerance=inf; %0.04;
 npolynomial=2;
-mincountpoints=10;
+mincountpoints=3;
 
 transformtype='similarity'; %'affine';
 transformtypev=transformtype; %'projective';%'affine';
-mincontrastvalue=0.001; % =0.05; default = 0.2.....0.001
-%minqualityvalue=0.1; % default = 0.1
+mincontrastvalue=0.01; %0.001; % =0.05; default = 0.2.....0.001
+minqualityvalue=0.01; % default = 0.1
 maxdistancesep=1.5; % default = 1.5
 outliertformerror_thresh=maxdistancesep;
 minlinfitpoints=5;
 searchmethod='Approximate'; %'Exhaustive'; %'Approximate';
-maxratio=0.8;
-numoctaves=8;
-rszscale=2;
+maxratio=0.8; % Default = 0.6
+numoctaves=16;
+rszscale=1;
 confidencelevel=99;
 maxnumtrials=1e5;
 maxdistance=1.5;
@@ -48,6 +48,8 @@ dodisplayfeatures=false;
 doimagemagick=false;
 dovips=false;
 
+dopcmatching=false;
+peakcorrthreshprctile=50;
 
 
 
@@ -81,7 +83,7 @@ if dooverlapfromhdr
     EmissionCurrent=nan(nfiles,1);
     middlefilenumber=round(nfiles/2);
     
-    %for ii=1:nfilesread
+    %for ii=1:nfiles
     
     parfor ii=1:nfiles
         
@@ -205,7 +207,10 @@ YL=nan(colmax,rowmax,2);
 XL=nan(colmax,rowmax,2);
 
 matchedvcount=zeros(colmax,rowmax);
+ispc=zeros(colmax,rowmax,4);
 matchedcount=zeros(colmax,rowmax);
+tformpc=cell(colmax,rowmax);
+peakcorr=zeros(colmax,rowmax,4);
 matchedvcount_refine=zeros(colmax,rowmax,2);
 matchedcount_refine=zeros(colmax,rowmax,2);
 matchmetric=cell(colmax,rowmax);
@@ -283,12 +288,14 @@ for qq=cols_array
     matchmetricqq=cell(nrowsarray,1);
     matchmetricvqq=cell(nrowsarray,1);
     tformstageqq=zeros(nrowsarray,3,3);
-    
+    tformpcqq=cell(nrowsarray,1);
+    peakcorrqq=zeros(nrowsarray,4);
+    matchedvcountqq=zeros(nrowsarray,1);
     parfor kk__=1:nrowsarray %2:nf
-        %     for kk__=1:nrowsarray %2:nf
+    %for kk__=1:nrowsarray %2:nf
         
-        [matchedcountqq(kk__),matchedvcountqq(kk__),matchedPointsqq{kk__},matchedPointsPrevqq{kk__},matchedPoints_vqq{kk__},matchedPointsPrev_vqq{kk__},brightnessvaluesqq(kk__,:),brightnessvaluesvqq(kk__,:),emission_current_ampsqq(kk__),matchmetricqq{kk__},matchmetricvqq{kk__}] = ... % matchmetricqq(kk__)
-            computeMatchedPointsMosaicMaker(kk__,rows_array,cols_array,qq,imgext,imgfolder,imsz,  searchheight,  imsz,searchwidth,dosavefigurematches,dosavefigurematchesv,dodisplayfeatures,mincontrastvalue,transformtype,transformtypev,mincountpoints,pointsAreColinear,searchmethod,maxratio,numoctaves,rszscale,confidencelevel,maxnumtrials,maxdistance);
+        [matchedcountqq(kk__),matchedvcountqq(kk__),matchedPointsqq{kk__},matchedPointsPrevqq{kk__},matchedPoints_vqq{kk__},matchedPointsPrev_vqq{kk__},brightnessvaluesqq(kk__,:),brightnessvaluesvqq(kk__,:),emission_current_ampsqq(kk__),matchmetricqq{kk__},matchmetricvqq{kk__},tformpcqq{kk__},peakcorrqq(kk__,:)] = ... % matchmetricqq(kk__)
+            computeMatchedPointsMosaicMaker(kk__,rows_array,cols_array,qq,imgext,imgfolder,imsz,  searchheight,  imsz,searchwidth,dosavefigurematches,dosavefigurematchesv,dodisplayfeatures,mincontrastvalue,minqualityvalue,transformtype,transformtypev,mincountpoints,pointsAreColinear,searchmethod,maxratio,numoctaves,rszscale,confidencelevel,maxnumtrials,maxdistance,dopcmatching);
         %                                  (kk__,rows_array,cols_array,qq,imgext,imgfolder,height,searchheight,width,searchwidth,dosavefigurematches,dosavefigurematchesv,dodisplayfeatures,mincontrastvalue,transformtype,transformtypev,mincountpoints,pointsAreColinear,searchmethod,maxratio,numoctaves,rszscale,confidencelevel,maxnumtrials,maxdistance)
         [XStage,YStage,ZStage,WD,StageRotation,PixelSizeX,PixelSizeY,EmissionCurrent]=tescanreadcoords(sprintf([imgfolder '%03d_%03d-' imgext '.hdr'],rows_array(kk__),qq));
         tformstageqq(kk__,:,:)=[1,0,0;0,1,0;-XStage/PixelSizeX,YStage./PixelSizeY,1];
@@ -311,8 +318,13 @@ for qq=cols_array
     emission_current_amps(qq,rows_array)=emission_current_ampsqq;
     matchmetric(qq,rows_array)=matchmetricqq;
     matchmetricv(qq,rows_array)=matchmetricvqq;
+    tformpc(qq,rows_array)=tformpcqq;
+    peakcorr(qq,rows_array,:)=peakcorrqq;
+    
     
 end
+
+peakcorrthresh=prctile(peakcorr(:),peakcorrthreshprctile);
 
 delete(gcp('nocreate'));
 
@@ -357,6 +369,7 @@ tformt(colmax,rowmax)=projective2d(eye(3));
 % end
 
 Tt=nan(colmax,rowmax,4,3,3);
+Ttpc=nan(colmax,rowmax,4,3,3);
 Ttxy=nan(colmax,rowmax,3,3);
 d1x=nan(colmax,rowmax);
 d2x=nan(colmax,rowmax);
@@ -403,6 +416,8 @@ for qq=cols_array
     end
     
     for kk=rowsforcol{colt==qq}' %loopvector
+        
+               
         
         ll=[];
         mp_ll=[];
@@ -452,11 +467,10 @@ for qq=cols_array
             [tformtqq2, inlier1a, inlier2a, ~] = estimateGeometricTransform(...
                 ll, mp_ll, transformtype, 'MaxNumTrials', 1e5); %, 'MaxDistance', maxdistancesep);%;); %, 'MaxDistance', round(width/100));
             
+            
             Tt(qq,kk,1,:,:)=tformtqq.T;
             
-            %if kk>1
             Tt(qq,kk,3,:,:)=tformtqq2.T;
-            %end
             
             if numel(inlier1)>=mincountpoints
                 U=transformPointsForward(tformtqq,inlier1);
@@ -470,6 +484,9 @@ for qq=cols_array
                 matchedcount_refine(qq,kk,2)=size(U,1);
                 %errortform(qq,kk,1)=rms(matchmetric{qq,kk})./(numel(matchmetric{qq,kk})).^1;
             end
+            
+            
+            
             
             
         end
@@ -520,11 +537,30 @@ for qq=cols_array
             [tformtqq2, inlier1a, inlier2a, ~] = estimateGeometricTransform(...
                 llp, mp_llp, transformtype, 'MaxNumTrials', 1e5); %, 'MaxDistance', maxdistancesep);%;); %, 'MaxDistance', round(width/100));
             
+            
             Tt(qq,kk,2,:,:)=tformtqq.T;
             
-            %if qq>1
             Tt(qq,kk,4,:,:)=tformtqq2.T;
-            %end
+            
+            
+            
+            
+            
+            %             if dopcmatching
+            %
+            %                 Tt(qq,kk,2,:,:)=tformpc{qq,kk}(2).T;
+            %
+            %                 Tt(qq,kk,4,:,:)=tformpc{qq,kk}(4).T;
+            %
+            %             else
+            %
+            %
+            %                 Tt(qq,kk,2,:,:)=tformtqq.T;
+            %
+            %                 Tt(qq,kk,4,:,:)=tformtqq2.T;
+            %
+            %   end
+            
             
             if numel(inlier1)>=mincountpoints
                 U=transformPointsForward(tformtqq,inlier1);
@@ -567,14 +603,48 @@ for qq=cols_array
         
         
         
-        
+        if dopcmatching
+            
+            Ttpc(qq,kk,1,:,:)=tformpc{qq,kk}(1).T;
+            Ttpc(qq,kk,2,:,:)=tformpc{qq,kk}(2).T;
+            Ttpc(qq,kk,3,:,:)=tformpc{qq,kk}(3).T;
+            Ttpc(qq,kk,4,:,:)=tformpc{qq,kk}(4).T;
+            
+        end
+
+    end
+end
+
+if dopcmatching
+
+nisfpc=numel(isfinite(peakcorr));
+nsifet=numel(isfinite(errortform));
+peakcorrv=peakcorr(:);
+errortformv=errortform(:);
+    
+    for qq=cols_array
+        for kk=rowsforcol{colt==qq}' %loopvector
+            
+            
+            
+            for mmm=1:4
+                if ~isfinite(Tt(qq,kk,mmm,1,1)) || sum(peakcorr(qq,kk,mmm)<peakcorrv)/nisfpc > sum(errortform(qq,kk,mmm)<errortformv)/nsifet
+                    
+                    Tt(qq,kk,mmm,:,:)=tformpc{qq,kk}(mmm).T;
+                    ispc(qq,kk,mmm)=1;
+                    
+                end
+            end
+            
+        end
         
     end
 end
 
+save(sprintf('mosaic_maker_%03d-%03d_preliminary.mat',min(cols_array),max(cols_array)))
 
 %%
-%
+load(sprintf('mosaic_maker_%03d-%03d_preliminary.mat',min(cols_array),max(cols_array)))
 
 nx=rowmax;
 ny=colmax;
@@ -606,22 +676,12 @@ for ii=1:ny
     
 end
 
-%%
+
 G=digraph(gg);
 
 EndNodes=G.Edges.EndNodes;
 G.Edges.Weight=G.Edges.Weight*inf;
 G1=G;
-
-%qq1=70;
-%kk1=113;
-
-%N=nearest(G,sub2ind([ny,nx],qq1,rowmax),1,'Method','unweighted');
-%[a,b]=ind2sub([ny,nx],N);
-
-
-
-
 
 
 kko=inf;
@@ -636,17 +696,18 @@ for ii=-round(numel(cols_array)/20):round(numel(cols_array)/20)
     
 end
 
-
-pctile_thresh_tform=100;
-pctile_thresh_shift=100;
-tform_power=1;
+pctile_thresh_tform=80;
+pctile_thresh_shift=80;
+tform_power=0;
 shift_power=1;
 
-ET1=sqrt(errortform(:,:,1))./matchedcount;
-ET1_p=prctile(ET1(:),pctile_thresh_tform);
+ET1=sqrt(errortform(:,:,1))./matchedcount.^2;
+ET2=sqrt(errortform(:,:,2))./matchedvcount.^2;
 
-ET2=sqrt(errortform(:,:,2))./matchedvcount;
-ET2_p=prctile(ET2(:),pctile_thresh_tform);
+ET1_p=prctile(ET1(isfinite(ET1(:))),pctile_thresh_tform);
+
+ET2_p=prctile(ET2(isfinite(ET2(:))),pctile_thresh_tform);
+
 
 ST1a=abs(squeeze(Tt(:,:,1,3,1))+(imsz*(1-overlap)));
 ST1b=abs(squeeze(Tt(:,:,3,3,1))-(imsz*(1-overlap)));
@@ -658,47 +719,136 @@ ST2b=abs(squeeze(Tt(:,:,4,3,2))+(imsz*(1-overlap)));
 ST2a_p=prctile(ST2a(:),pctile_thresh_shift);
 ST2b_p=prctile(ST2b(:),pctile_thresh_shift);
 
-ST_p=prctile([ST2a(:);ST2b(:);ST1a(:);ST1b(:)],pctile_thresh_shift);
+maxST1a=max(ST1a(:));
+maxST1b=max(ST1b(:));
+maxST2a=max(ST2a(:));
+maxST2b=max(ST2b(:));
+maxET1=max(ET1(:));
+maxET2=max(ET2(:));
+
+isnanET=isnan(ST1a) | isnan(ST2a) | isnan(ST1b) | isnan(ST2b) | isnan(ET1) | isnan(ET2) | ET1>ET1_p | ET2>ET2_p | ST1a>ST1a_p | ST1b>ST1b_p | ST2a>ST2a_p | ST2b>ST2b_p ;
+isnanETmask=zeros(size(isnanET));
+isnanETmask(isnanET==1)=nan;
+isnanETmask(isnanET==0)=1;
+
+outlierfac=1;
+
+Tt0=Tt;
+
+% Fill in NaNs:
+
+ET1(isnan(ET1))=outlierfac*maxET1;
+ET2(isnan(ET2))=outlierfac*maxET2;
+
+ST1a(isnan(ST1a))=outlierfac*maxST1a;
+ST1b(isnan(ST1b))=outlierfac*maxST1b;
+ST2a(isnan(ST2a))=outlierfac*maxST2a;
+ST2b(isnan(ST2b))=outlierfac*maxST2b;
+
+for kk=1:4
+    for ii=1:3
+        for jj=1:2
+            if sum(sum(isnan(Tt(colmin:colmax,rowmin:rowmax,kk,ii,jj))))>0
+                Ttarray=Tt(:,:,kk,ii,jj);
+                Tt00=inpaint_nans(isnanETmask.*Ttarray,4); %               
+                %Tt00(isfinite(Ttarray)) = Ttarray(isfinite(Ttarray));
+                Tt0(:,:,kk,ii,jj)=Tt00;
+                %Tt0(~isnan(isnanETmask),kk,ii,jj)=Ttarray(~isnan(isnanETmask));
+            end
+        end
+    end
+end
+
+%plot(1:rowmax,Tt0(35,:,1,3,2),'-bo',1:rowmax,Tt(35,:,1,3,2),'r*')
+
+for kk=1:4
+    
+    Tt0(colmin:colmax,rowmin:rowmax,kk,1,3)=0;
+    Tt0(colmin:colmax,rowmin:rowmax,kk,2,3)=0;
+    Tt0(colmin:colmax,rowmin:rowmax,kk,3,3)=1;
+    
+%     if sum(sum(isnan(Tt(colmin:colmax,rowmin:rowmax,kk,3,3))))>0
+%         Tt0(colmin:colmax,rowmin:rowmax,kk,3,3)=double(single(inpaint_nans(Tt(colmin:colmax,rowmin:rowmax,kk,3,3),0)));
+%     end
+    
+end
+
+% ET1=sqrt(errortform(:,:,1))./matchedcount.^2;
+% ET2=sqrt(errortform(:,:,2))./matchedvcount.^2;
+% 
+% 
+% ST1a=abs(squeeze(Tt0(:,:,1,3,1))+(imsz*(1-overlap)));
+% ST1b=abs(squeeze(Tt0(:,:,3,3,1))-(imsz*(1-overlap)));
+% 
+% ST2a=abs(squeeze(Tt0(:,:,2,3,2))-(imsz*(1-overlap)));
+% ST2b=abs(squeeze(Tt0(:,:,4,3,2))+(imsz*(1-overlap)));
+% 
+% ST_p=prctile([ST2a(:);ST2b(:);ST1a(:);ST1b(:)],pctile_thresh_shift);
 
 
-isoutlier=zeros(colmax,rowmax);
+
+ 
+if dopcmatching
+    mpeakcorrv=median(peakcorrv(isfinite(peakcorrv)));
+    merrortformv=median(errortformv(isfinite(errortformv)));
+    for qq=cols_array
+        for kk=rowsforcol{colt==qq}' %loopvector
+            
+            if ispc(qq,kk,1)==1
+                ET1(qq,kk)=peakcorr(qq,kk,1).*merrortformv/mpeakcorrv;
+            end
+            
+            if ispc(qq,kk,2)==1
+                ET2(qq,kk)=peakcorr(qq,kk,2).*merrortformv/mpeakcorrv;
+            end
+           
+        end
+    end
+
+end
+
+
+
 %ff2a=[];
 for qq1=cols_array
     for kk1=rowsforcol{colt==qq1}'
         
-        if (ET1(qq1,kk1)>ET1_p || ST1a(qq1,kk1)>ST_p || ST1b(qq1,kk1)>ST_p) && isfinite(errortform(qq1,kk1,1))
-            isoutlier(qq1,kk1)=1;
-        end
-        if ET1(qq1,kk1)<ET1_p && ST1a(qq1,kk1)<ST_p %ST1a_p %&& isfinite(Tt(qq1,kk1,3,1,1)) %kk1>1 &&
+%         if (ET1(qq1,kk1)>ET1_p || ST1a(qq1,kk1)>ST1a_p || ST1b(qq1,kk1)>ST1b_p) && isfinite(ET1(qq1,kk1))
+%             isoutlier(qq1,kk1)=1;
+%         end
+%        if ET1(qq1,kk1)<ET1_p && ST1a(qq1,kk1)<ST1a_p && kk1>1 %ST1a_p %&& isfinite(Tt(qq1,kk1,3,1,1)) %kk1>1 &&
+        if kk1>1
             in2a=EndNodes(:,1)==sub2ind([ny,nx],qq1,kk1-1) & EndNodes(:,2)==sub2ind([ny,nx],qq1,kk1);
             % sprintf('%d,%d : %d,%d',qq1,kk1-1,qq1,kk1)
             %ff2a=[ff2a,find(in2a)];
-            G.Edges.Weight(in2a)=(ET1(qq1,kk1)./ET1_p).^tform_power+(ST1a(qq1,kk1)./ST_p).^shift_power; %(ET1(qq1,kk1)./ET1_p).^tform_power.*(ST1(qq1,kk1)./ST1_p).^shift_power; % errortform(qq1,kk1,1);
+            G.Edges.Weight(in2a)=(ET1(qq1,kk1)./ET1_p).^tform_power+(ST1a(qq1,kk1)./ST1a_p).^shift_power; %(ET1(qq1,kk1)./ET1_p).^tform_power.*(ST1(qq1,kk1)./ST1_p).^shift_power; % errortform(qq1,kk1,1);
             G1.Edges.Weight(in2a)=1;
         end
-        if ET1(qq1,kk1)<ET1_p && ST1b(qq1,kk1)<ST_p %ST1b_p
+%        if ET1(qq1,kk1)<ET1_p && ST1b(qq1,kk1)<ST1b_p && kk1>1 %ST1b_p
+        if kk1>1 
             in2a=EndNodes(:,1)==sub2ind([ny,nx],qq1,kk1) & EndNodes(:,2)==sub2ind([ny,nx],qq1,kk1-1);
             % sprintf('%d,%d : %d,%d',qq1,kk1,qq1,kk1-1)
             %ff2a=[ff2a,find(in2a)];
-            G.Edges.Weight(in2a)=(ET1(qq1,kk1)./ET1_p).^tform_power+(ST1b(qq1,kk1)./ST_p).^shift_power; %(ET1(qq1,kk1)./ET1_p).^tform_power.*(ST1(qq1,kk1)./ST1_p).^shift_power; % errortform(qq1,kk1,1);
+            G.Edges.Weight(in2a)=(ET1(qq1,kk1)./ET1_p).^tform_power+(ST1b(qq1,kk1)./ST1b_p).^shift_power; %(ET1(qq1,kk1)./ET1_p).^tform_power.*(ST1(qq1,kk1)./ST1_p).^shift_power; % errortform(qq1,kk1,1);
             G1.Edges.Weight(in2a)=1;
         end
         
-        if (ET2(qq1,kk1)>ET2_p  || ST2a(qq1,kk1)>ST_p || ST2b(qq1,kk1)>ST_p) && isfinite(errortform(qq1,kk1,2))
-            isoutlier(qq1,kk1)=1;
-        end
-        if ET2(qq1,kk1)<ET2_p && ST2a(qq1,kk1)<ST_p %ST2a_p %&& isfinite(Tt(qq1,kk1,4,1,1)) % qq1>1 &&
+%         if (ET2(qq1,kk1)>ET2_p  || ST2a(qq1,kk1)>ST2a_p || ST2b(qq1,kk1)>ST2b_p) && isfinite(ET2(qq1,kk1))
+%             isoutlier(qq1,kk1)=1;
+%         end
+%        if ET2(qq1,kk1)<ET2_p && ST2a(qq1,kk1)<ST2a_p && qq1>1 %ST2a_p %&& isfinite(Tt(qq1,kk1,4,1,1)) % qq1>1 &&
+        if qq1>1
             in4a=EndNodes(:,1)==sub2ind([ny,nx],qq1-1,kk1) & EndNodes(:,2)==sub2ind([ny,nx],qq1,kk1);
             %ff2a=[ff2a,find(in4a)];
             %sprintf('%d,%d : %d,%d',qq1-1,kk1,qq1,kk1)
-            G.Edges.Weight(in4a)=(ET2(qq1,kk1)./ET2_p).^tform_power+(ST2a(qq1,kk1)./ST_p).^shift_power; %((errortform(qq1,kk1,2)./matchedvcount_refine(qq1,kk1))./ET2_p).^tform_power.*(ST2(qq1,kk1)./ST2_p).^shift_power; % errortform(qq1,kk1,2);
+            G.Edges.Weight(in4a)=(ET2(qq1,kk1)./ET2_p).^tform_power+(ST2a(qq1,kk1)./ST2a_p).^shift_power; %((errortform(qq1,kk1,2)./matchedvcount_refine(qq1,kk1))./ET2_p).^tform_power.*(ST2(qq1,kk1)./ST2_p).^shift_power; % errortform(qq1,kk1,2);
             G1.Edges.Weight(in4a)=1;
-        end
-        if ET2(qq1,kk1)<ET2_p && ST2b(qq1,kk1)<ST_p %ST2b_p
+%        end
+%        if ET2(qq1,kk1)<ET2_p && ST2b(qq1,kk1)<ST2b_p && qq1>1 %ST2b_p
             in4a=EndNodes(:,1)==sub2ind([ny,nx],qq1,kk1) & EndNodes(:,2)==sub2ind([ny,nx],qq1-1,kk1);
             %ff2a=[ff2a,find(in4a)];
             %sprintf('%d,%d : %d,%d',qq1,kk1,qq1-1,kk1)
-            G.Edges.Weight(in4a)=(ET2(qq1,kk1)./ET2_p).^tform_power+(ST2b(qq1,kk1)./ST_p).^shift_power; %((errortform(qq1,kk1,2)./matchedvcount_refine(qq1,kk1))./ET2_p).^tform_power.*(ST2(qq1,kk1)./ST2_p).^shift_power; % errortform(qq1,kk1,2);
+            G.Edges.Weight(in4a)=(ET2(qq1,kk1)./ET2_p).^tform_power+(ST2b(qq1,kk1)./ST2b_p).^shift_power; %((errortform(qq1,kk1,2)./matchedvcount_refine(qq1,kk1))./ET2_p).^tform_power.*(ST2(qq1,kk1)./ST2_p).^shift_power; % errortform(qq1,kk1,2);
             G1.Edges.Weight(in4a)=1;
         end
         
@@ -707,8 +857,10 @@ end
 
 % [path1,d,edgepath]=shortestpath(G,sub2ind([ny,nx],111,56),sub2ind([ny,nx],114,58));  G.Edges.Weight(edgepath)
 
+isoutlier=zeros(colmax,rowmax);
 % FULL GRAPH:
-[Tt2,isoutlier,dtotal] = calculateMosaicPositions(colmax,rowmax,cols_array,rowsforcol,G,ny,nx,qqo,kko,isoutlier,Tt,false);
+[Tt2,isoutlier,dtotal] = calculateMosaicPositions(colmax,rowmax,cols_array,rowsforcol,G,ny,nx,qqo,kko,isoutlier,Tt0,false);
+isoutlier(isnanET)=1;
 
 % JUST ROWS:
 % Tt2=nan(colmax,rowmax,3,3);
@@ -774,9 +926,9 @@ end
 % STRIPS:
 
 % load(sprintf('mosaic_maker_%03d-%03d.mat',1,133)); %min(cols_array),max(cols_array)))
-%%
+
 % load(sprintf('mosaic_maker_%03d-%03d.mat',min(cols_array),max(cols_array))); %min(cols_array),max(cols_array)))
-%load(sprintf('mosaic_maker_%03d-%03d.mat',90,110));
+%load(sprintf('mosaic_maker_%03d-%03d.mat',1,311));
 %load('mosaic_maker_100-105.mat');
 
 fido=fopen('pyvipsstrips.sh','w');
@@ -785,7 +937,7 @@ imageinfofilename=sprintf('imageinformation_strips_%03d_%03d.txt',cols_array(1),
 
 fid=fopen(imageinfofilename,'w');
 
-nrefineloops=4*2; %4*8;
+nrefineloops=4*3; %4*8;
 etfT=zeros(nrefineloops,1);
 nrefinepoints=zeros(nrefineloops,1);
 % ROW ANALYSES:
@@ -934,20 +1086,28 @@ if dorefine
     
 end
 
-T2=Tt2;
-for ii=1:3
-    for jj=1:2
-        if sum(sum(isnan(Tt2(colmin:colmax,rowmin:rowmax,ii,jj))))>0
-            T2(colmin:colmax,rowmin:rowmax,ii,jj)=inpaint_nans(Tt2(colmin:colmax,rowmin:rowmax,ii,jj),0);
-        end
-    end
-end
+% Fill in NaNs:
 
-T2(colmin:colmax,rowmin:rowmax,1,3)=0;
-T2(colmin:colmax,rowmin:rowmax,2,3)=0;
-if sum(sum(isnan(Tt2(colmin:colmax,rowmin:rowmax,3,3))))>0
-    T2(colmin:colmax,rowmin:rowmax,3,3)=double(single(inpaint_nans(Tt2(colmin:colmax,rowmin:rowmax,3,3),0)));
-end
+T2=Tt2;
+% for ii=1:3
+%     for jj=1:2
+%         if sum(sum(isnan(Tt2(colmin:colmax,rowmin:rowmax,ii,jj))))>0
+%             T2(colmin:colmax,rowmin:rowmax,ii,jj)=inpaint_nans(Tt2(colmin:colmax,rowmin:rowmax,ii,jj),0);
+%         end
+%     end
+% end
+% 
+% T2(colmin:colmax,rowmin:rowmax,1,3)=0;
+% T2(colmin:colmax,rowmin:rowmax,2,3)=0;
+% T2(colmin:colmax,rowmin:rowmax,3,3)=1;
+
+
+
+
+
+% if sum(sum(isnan(Tt2(colmin:colmax,rowmin:rowmax,3,3))))>0
+%     T2(colmin:colmax,rowmin:rowmax,3,3)=double(single(inpaint_nans(Tt2(colmin:colmax,rowmin:rowmax,3,3),0)));
+% end
 
 
 %         if numel(llpx)>mincountpoints
@@ -1128,6 +1288,9 @@ end
 %    end
 % end
 
+% inpaint_nans;
+%T2=Tt2;
+
 xMin=inf;
 xMax=-inf;
 yMin=inf;
@@ -1226,7 +1389,7 @@ end
 % [~,rowindex]=rowimagecount(BB,colmax,cols_array,rowsforcol,colt,Tt2,imsz,xMin,xMax,XL,YL);
 
 %BB=linspace(yMin,yMax,floor(numel(cols_array)/4)+1);
-BB=linspace(yMin,yMax,17);
+BB=linspace(yMin,yMax,ncols+1);
 [~,rowindex]=rowimagecount(BB,colmax,cols_array,rowsforcol,colt,T2,imsz,xMin,xMax,XL,YL);
 
 
@@ -1460,7 +1623,8 @@ for jj=cols_array
     plot(imgshiftx(jj,:),imgshifty(jj,:),'-','Color',cc(jj-min(cols_array)+1,:));
 end
 for ii=cols_array
-    indout=isnan(sum(sum(Tt2(ii,rowsforcol{colt==ii},:,:),3),4)); % isoutlierall(ii,rowsforcol{colt==ii}) |
+    indout=logical(isoutlier(ii,rowsforcol{colt==ii}));
+    %indout=isnan(sum(sum(Tt2(ii,rowsforcol{colt==ii},:,:),3),4)); % isoutlierall(ii,rowsforcol{colt==ii}) |
     plot(imgshiftx(ii,rowsforcol{colt==ii}(~indout)),imgshifty(ii,rowsforcol{colt==ii}(~indout)),'s','Color',cc(ii-min(cols_array)+1,:),'MarkerFaceColor',cc(ii-min(cols_array)+1,:));
     plot(imgshiftx(ii,rowsforcol{colt==ii}(indout)),imgshifty(ii,rowsforcol{colt==ii}(indout)),'s','Color',cc(ii-min(cols_array)+1,:),'MarkerFaceColor','w');
     if maxvc_index_t(ii)>0
@@ -1580,6 +1744,27 @@ set(gca,'XDir','reverse');
 colorbar;
 fname=sprintf('shifterrx_%03d_%03d.png',min(cols_array),max(cols_array));
 set(gca,'ColorScale','log')
+print('-dpng','-r300',fname);
+close(gcf);
+
+figure('visible','off');
+imagesc(peakcorr(colmin:colmax,rowmin:rowmax,1));
+axis image;
+set(gca,'XDir','reverse');
+colorbar;
+fname=sprintf('peakcorr1_%03d_%03d.png',min(cols_array),max(cols_array));
+%set(gca,'ColorScale','log')
+print('-dpng','-r300',fname);
+close(gcf);
+
+
+figure('visible','off');
+imagesc(peakcorr(colmin:colmax,rowmin:rowmax,2));
+axis image;
+set(gca,'XDir','reverse');
+colorbar;
+fname=sprintf('peakcorr2_%03d_%03d.png',min(cols_array),max(cols_array));
+%set(gca,'ColorScale','log')
 print('-dpng','-r300',fname);
 close(gcf);
 
