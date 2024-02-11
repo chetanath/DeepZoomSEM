@@ -1,0 +1,650 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Qiskit v0.31.0 (ipykernel)",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.8.10"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/chetanath/DeepZoomSEM/blob/master/QXQ\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Lab 14: Complexity of Algorithms**\n",
+        "---\n",
+        "\n",
+        "### **Description**\n",
+        "Today, we will work with two of the most famous classical search algorithms: linear and binary search. We will implement and analyze their performance.\n",
+        "\n",
+        "\n",
+        "\n",
+        "<br>\n",
+        "\n",
+        "### **Structure**\n",
+        "### **Structure**\n",
+        "**Part 1**: [Linear Search](#p1)\n",
+        "\n",
+        "**Part 2**: [Binary Search](#p2)\n",
+        "\n",
+        "\n",
+        "<br>\n",
+        "\n",
+        "### **Learning Objectives**\n",
+        "By the end of this lab, you will:\n",
+        "* Recognize how to compare algorithms using big-O notation.\n",
+        "* Recognize the limits of classical search algorithms for unordered lists.\n",
+        "\n",
+        "\n",
+        "<br>\n",
+        "\n",
+        "### **Resources**\n",
+        "* [Linear Search as a Dance](http://www.youtube.com/watch?v=-PuqKbu9K3U)\n",
+        "\n",
+        "* [Binary Search as a Dance](http://www.youtube.com/watch?v=wz7XgKowJIg)\n",
+        "\n",
+        "\n",
+        "<br>\n",
+        "\n",
+        "**Before starting, run the code below to import all necessary functions and libraries.**"
+      ],
+      "metadata": {
+        "id": "1s-9JC7kWwrY"
+      },
+      "id": "1s-9JC7kWwrY"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "LxC62c-hRcYv",
+        "cellView": "form"
+      },
+      "outputs": [],
+      "source": [
+        "# @title\n",
+        "# Importing other python libraries\n",
+        "import random\n",
+        "import matplotlib.pyplot as plt\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\")\n",
+        "\n",
+        "print(\"Libraries imported successfully!\")"
+      ],
+      "id": "LxC62c-hRcYv"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "jp-MarkdownHeadingCollapsed": true,
+        "tags": [],
+        "id": "sVwVviQORgWa"
+      },
+      "source": [
+        "<a name=\"p1\"></a>\n",
+        "\n",
+        "---\n",
+        "## **Part 1: Linear Search**\n",
+        "---\n",
+        "\n",
+        "In this section, we will implement and analyze the linear search algorithm."
+      ],
+      "id": "sVwVviQORgWa"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #1.1**\n",
+        "\n",
+        "**Together**, let's run the code below to implement linear search for a list of numbers. We will use the following variables:\n",
+        "* `list_items`: A list of numbers from 0 to 49 that we will search through.\n",
+        "* `marked_item`: A randomly selected number from the list that we will search for.\n",
+        "* `number_queries`: A count of how many times we need to query the list to find the marked item."
+      ],
+      "metadata": {
+        "id": "ygbX_FcFUVuL"
+      },
+      "id": "ygbX_FcFUVuL"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "list_items = range(50)\n",
+        "marked_item = random.choice(list_items)\n",
+        "\n",
+        "print(list_items)\n",
+        "print(marked_item)\n",
+        "\n",
+        "number_queries = 0\n",
+        "for item in list_items:\n",
+        "\n",
+        "    number_queries = number_queries + 1\n",
+        "\n",
+        "    if item == marked_item:\n",
+        "        print(str(marked_item) + \" has been found in \" + str(number_queries) + \" queries.\")\n",
+        "        break"
+      ],
+      "metadata": {
+        "id": "R2D2dcD3TfMi"
+      },
+      "id": "R2D2dcD3TfMi",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #1.2**\n",
+        "\n",
+        "**Together**, let's complete the code below to run our linear search many times to find the *worst number of queries*. We will use the following additional variables:\n",
+        "* `number_trials`: The number of times to repeat the linear search.\n",
+        "* `worst_query`: The most number of queries we had to make across all trials."
+      ],
+      "metadata": {
+        "id": "5Grh57NcU1ue"
+      },
+      "id": "5Grh57NcU1ue"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "number_trials = 1000\n",
+        "worst_query = 0\n",
+        "list_items = range(50)\n",
+        "\n",
+        "for i in range(number_trials):\n",
+        "\n",
+        "  marked_item = random.choice(list_items)\n",
+        "  number_queries = 0\n",
+        "  for item in list_items:\n",
+        "\n",
+        "      number_queries = # COMPLETE THIS LINE\n",
+        "\n",
+        "      if item == marked_item:\n",
+        "          print(str(marked_item) + \" has been found in \" + str(number_queries) + \" queries.\")\n",
+        "          break\n",
+        "\n",
+        "  worst_query = max(worst_query, number_queries)\n",
+        "\n",
+        "print(\"Worst number of queries: \" + str(worst_query))"
+      ],
+      "metadata": {
+        "id": "zOdODS_MU2-A"
+      },
+      "id": "zOdODS_MU2-A",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #1.3**\n",
+        "\n",
+        "**Together**, let's put this code into a function called `linear_search` such that it:\n",
+        "* Takes `n` as input parameters.\n",
+        "* Runs the code we wrote in Exercise #2 such that there are `n` items in `list_items`.\n",
+        "* Returns the worst number of queries instead of printing it."
+      ],
+      "metadata": {
+        "id": "jAsnYi7tXV0t"
+      },
+      "id": "jAsnYi7tXV0t"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def linear_search(n):\n",
+        "\n",
+        "  # COMPLETE THIS CODE\n",
+        "\n",
+        "  return # COMPLETE THIS CODE"
+      ],
+      "metadata": {
+        "id": "VwV-u4NOYHQp"
+      },
+      "id": "VwV-u4NOYHQp",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### **Problem #1.4**\n",
+        "\n",
+        "**Together**, let's graph the worst number of queries for list sizes from 100 to 10000."
+      ],
+      "metadata": {
+        "id": "QsFDiBb5ZEaE"
+      },
+      "id": "QsFDiBb5ZEaE"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "linear_queries = []\n",
+        "ns = range(100, 10000, 100)\n",
+        "for n in ns:\n",
+        "  linear_queries += [# COMPLETE THIS LINE\n",
+        "\n",
+        "plt.scatter(ns, linear_queries, label = \"linear\")\n",
+        "plt.xlabel(\"n\")\n",
+        "plt.ylabel(\"Worst Number of Queries\")\n",
+        "plt.title(\"Linear Search Worst Number of Queries with Increasing List Size\")\n",
+        "\n",
+        "plt.plot()"
+      ],
+      "metadata": {
+        "id": "CiK5tqlIZP8q"
+      },
+      "id": "CiK5tqlIZP8q",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "jp-MarkdownHeadingCollapsed": true,
+        "tags": [],
+        "id": "WFmS9OGla44n"
+      },
+      "source": [
+        "<a name=\"p2\"></a>\n",
+        "\n",
+        "---\n",
+        "## **Part 2: Binary Search**\n",
+        "---\n",
+        "\n",
+        "In this section, we will implement and analyze the binary search algorithm. We will also visually compare it to the linear search algorithm we implemented above.\n"
+      ],
+      "id": "WFmS9OGla44n"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.1**\n",
+        "\n",
+        "**Together**, let's complete the code below to implement binary search for a list of numbers. We will use the following variables:\n",
+        "* `list_items`: A list of numbers from 0 to 49 that we will search through.\n",
+        "* `marked_item`: A randomly selected number from the list that we will search for.\n",
+        "* `number_queries`: A count of how many times we need to query the list to find the marked item."
+      ],
+      "metadata": {
+        "id": "xXt3_XDQa44o"
+      },
+      "id": "xXt3_XDQa44o"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "list_items = range(50)\n",
+        "marked_item = random.choice(list_items)\n",
+        "\n",
+        "left = 0\n",
+        "right = len(list_items) - 1\n",
+        "\n",
+        "number_queries = 0\n",
+        "for item in list_items:\n",
+        "\n",
+        "  number_queries = # COMPLETE THIS LINE\n",
+        "\n",
+        "  middle = int((left + right)/2)\n",
+        "  if list_items[middle] > marked_item:\n",
+        "    # COMPLETE THIS LINE\n",
+        "  elif list_items[middle] < marked_item:\n",
+        "    # COMPLETE THIS LINE\n",
+        "  else:\n",
+        "    print(str(marked_item) + \" has been found in \" + str(number_queries) + \" queries.\")\n",
+        "    break"
+      ],
+      "metadata": {
+        "id": "rWtwzpWGa44o"
+      },
+      "execution_count": null,
+      "outputs": [],
+      "id": "rWtwzpWGa44o"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.2**\n",
+        "\n",
+        "**Independently**, complete the code below to run our binary search many times to find the *worst number of queries*. You will use the following additional variables:\n",
+        "* `number_trials`: The number of times to repeat the binary search.\n",
+        "* `worst_query`: The most number of queries we had to make across all trials."
+      ],
+      "metadata": {
+        "id": "HRX498aja44p"
+      },
+      "id": "HRX498aja44p"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "number_trials = 10\n",
+        "worst_query = 0\n",
+        "list_items = range(50)\n",
+        "\n",
+        "for i in range(number_trials):\n",
+        "\n",
+        "  # ADD THE CODE FROM EXERCISE #1 HERE\n",
+        "\n",
+        "  worst_query = # COMPLETE THIS LINE\n",
+        "\n",
+        "print(\"Worst number of queries: \" + str(worst_query))"
+      ],
+      "metadata": {
+        "id": "9RNTkWAGa44p"
+      },
+      "execution_count": null,
+      "outputs": [],
+      "id": "9RNTkWAGa44p"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.3**\n",
+        "\n",
+        "**Independently**, put this code into a function called `binary_search` such that it:\n",
+        "* Takes `n` as input parameters.\n",
+        "* Runs the code we wrote in Exercise #2 such that there are `n` items in `list_items`.\n",
+        "* Returns the worst number of queries instead of printing it."
+      ],
+      "metadata": {
+        "id": "gW2FIsU_a44q"
+      },
+      "id": "gW2FIsU_a44q"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def binary_search(n):\n",
+        "\n",
+        "  # ADD THE CODE FROM EXERCISE #1 HERE\n",
+        "\n",
+        "  return # COMPLETE THIS LINE"
+      ],
+      "metadata": {
+        "id": "4wHs-Q6pa44q"
+      },
+      "execution_count": null,
+      "outputs": [],
+      "id": "4wHs-Q6pa44q"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "---\n",
+        "####**Wait for your instructor to continue.**\n",
+        "\n",
+        "---"
+      ],
+      "metadata": {
+        "id": "Yz0QS4N4Dfs6"
+      },
+      "id": "Yz0QS4N4Dfs6"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.4**\n",
+        "\n",
+        "**Together**, graph the worst number of queries for list sizes from 100 to 10000."
+      ],
+      "metadata": {
+        "id": "JBKQ6cfSa44q"
+      },
+      "id": "JBKQ6cfSa44q"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "binary_queries = []\n",
+        "ns = range(100, 10000, 100)\n",
+        "for n in ns:\n",
+        "  # COMPLETE THIS LINE\n",
+        "\n",
+        "plt.scatter(ns, binary_queries, label = \"binary\")\n",
+        "\n",
+        "plt.xlabel(\"n\")\n",
+        "plt.ylabel(\"Worst Number of Queries\")\n",
+        "plt.title(\"Binary Search Worst Number of Queries with Increasing List Size\")\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.plot()"
+      ],
+      "metadata": {
+        "id": "Z2uoS7Baa44q"
+      },
+      "execution_count": null,
+      "outputs": [],
+      "id": "Z2uoS7Baa44q"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.5**\n",
+        "\n",
+        "**Together**, let's graph the worst number of queries for list sizes from 100 to 10000 *for both linear and binary search*."
+      ],
+      "metadata": {
+        "id": "LM_NPlKleeuG"
+      },
+      "id": "LM_NPlKleeuG"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "linear_queries = []\n",
+        "binary_queries = []\n",
+        "ns = range(100, 10000, 100)\n",
+        "for n in ns:\n",
+        "  # COMPLETE THIS CODE\n",
+        "\n",
+        "plt.scatter(ns, linear_queries, label = \"linear\")\n",
+        "plt.scatter(ns, binary_queries, label = \"binary\")\n",
+        "\n",
+        "plt.xlabel(\"n\")\n",
+        "plt.ylabel(\"Worst Number of Queries\")\n",
+        "plt.title(\"Linear and Binary Search Worst Number of Queries with Increasing List Size\")\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.plot()"
+      ],
+      "metadata": {
+        "id": "PubMhyKiegBB"
+      },
+      "id": "PubMhyKiegBB",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### **Problem  #2.6**\n",
+        "\n",
+        "**Together**, let's see how the performance of binary and linear search change when the order of items in the list is random using the `random.sample(...)` function. We will do this in 3 steps:\n",
+        "\n",
+        "1. Rewrite the `linear_search` function so that the list is randomly ordered.\n",
+        "2. Rewrite the `binary_search` function so that the list is randomly ordered.\n",
+        "3. Graph the average number of queries for both search algorithms.\n",
+        "\n",
+        "---"
+      ],
+      "metadata": {
+        "id": "kV6zmCJDfyCn"
+      },
+      "id": "kV6zmCJDfyCn"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "##### **Problem 2.6.1**\n",
+        "Rewrite the `linear_search` function so that the list is randomly ordered."
+      ],
+      "metadata": {
+        "id": "VwvqvGUqg25O"
+      },
+      "id": "VwvqvGUqg25O"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def linear_search(n):\n",
+        "\n",
+        "  number_trials = 10\n",
+        "  worst_query = 0\n",
+        "  list_items = # COMPLETE THIS LINE\n",
+        "\n",
+        "  for i in range(number_trials):\n",
+        "\n",
+        "    marked_item = random.choice(list_items)\n",
+        "    number_queries = 0\n",
+        "    for item in list_items:\n",
+        "\n",
+        "      number_queries = number_queries + 1\n",
+        "\n",
+        "      if item == marked_item:\n",
+        "        #print(str(marked_item) + \" has been found in \" + str(number_queries) + \" queries.\")\n",
+        "        break\n",
+        "\n",
+        "    worst_query = max(worst_query, number_queries)\n",
+        "\n",
+        "  return worst_query"
+      ],
+      "metadata": {
+        "id": "EywsFriSir4W"
+      },
+      "execution_count": null,
+      "outputs": [],
+      "id": "EywsFriSir4W"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.6.2**\n",
+        "Rewrite the `binary_search` function so that the list is randomly ordered."
+      ],
+      "metadata": {
+        "id": "80LSoHMkg6hk"
+      },
+      "id": "80LSoHMkg6hk"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def binary_search(n):\n",
+        "\n",
+        "  number_trials = 10\n",
+        "  worst_query = 0\n",
+        "  list_items = # COMPLETE THIS LINE\n",
+        "\n",
+        "  for i in range(number_trials):\n",
+        "\n",
+        "    marked_item = random.choice(list_items)\n",
+        "\n",
+        "    left = 0\n",
+        "    right = len(list_items) - 1\n",
+        "\n",
+        "    number_queries = 0\n",
+        "    for item in list_items:\n",
+        "\n",
+        "      number_queries = number_queries + 1\n",
+        "\n",
+        "      middle = int((left + right)/2)\n",
+        "      if list_items[middle] > marked_item:\n",
+        "        right = middle\n",
+        "      elif list_items[middle] < marked_item:\n",
+        "        left = middle\n",
+        "      else:\n",
+        "        #print(str(marked_item) + \" has been found in \" + str(number_queries) + \" queries.\")\n",
+        "        break\n",
+        "\n",
+        "    worst_query = max(worst_query, number_queries)\n",
+        "\n",
+        "  return worst_query"
+      ],
+      "metadata": {
+        "id": "w8pumLqXixk7"
+      },
+      "id": "w8pumLqXixk7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### **Problem #2.6.3**\n",
+        "Graph the average number of queries for both search algorithms."
+      ],
+      "metadata": {
+        "id": "YjRZrFGQg9VQ"
+      },
+      "id": "YjRZrFGQg9VQ"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "linear_queries = []\n",
+        "binary_queries = []\n",
+        "ns = range(100, 10000, 100)\n",
+        "for n in ns:\n",
+        "  # COMPLETE THIS CODE\n",
+        "\n",
+        "plt.scatter(ns, linear_queries, label = \"linear\")\n",
+        "plt.scatter(ns, binary_queries, label = \"binary\")\n",
+        "\n",
+        "plt.xlabel(\"n\")\n",
+        "plt.ylabel(\"Worst Number of Queries\")\n",
+        "plt.title(\"Linear and Binary Search Worst Number of Queries with Increasing List Size\")\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.plot()"
+      ],
+      "metadata": {
+        "id": "FnDZGqfZi1XP"
+      },
+      "id": "FnDZGqfZi1XP",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#End of Lab\n",
+        "---\n",
+        "© 2024 The Coding School, All rights reserved"
+      ],
+      "metadata": {
+        "id": "hQJELyD6aeJ2"
+      },
+      "id": "hQJELyD6aeJ2"
+    }
+  ]
+}
